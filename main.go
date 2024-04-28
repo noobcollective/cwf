@@ -3,16 +3,20 @@ package main
 import (
 	"fmt"
 	"flag"
+
+	"cwf/server"
 )
 
 func main() {
 
-	asDaemon := flag.Bool("daemon", false, "Start as daemon.")
+	asDaemon := flag.Bool("serve", false, "Start as daemon.")
 	flag.Parse()
 
 	if *asDaemon {
-		fmt.Println("Starting as daemon...")
-	} else {
-		fmt.Println("Running with logs...")
+		server.StartServer()
+		fmt.Println("Serving")
+		return
 	}
+
+	fmt.Println("Give me that shit.")
 }
