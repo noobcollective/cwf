@@ -76,10 +76,12 @@ func handleStdin(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		err = os.Mkdir(dir[0], os.ModePerm)
-		if (err != nil) {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
+		if _, err := os.Stat("/path/to/whatever"); !os.IsNotExist(err) {
+			err = os.Mkdir(dir[0], os.ModePerm)
+			if (err != nil) {
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
 		}
 	}
 
