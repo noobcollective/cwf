@@ -1,4 +1,4 @@
-# cwf - **c**opy **w**ith **f**riends
+# cwf - copy with friends
 
 ## TODO:
 - [ ] prefix paths with cwf home (preferable in a config file) - defaults to `/tmp/cwf/`

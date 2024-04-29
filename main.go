@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"flag"
 
+	"cwf/client"
 	"cwf/server"
 )
 
@@ -18,5 +19,5 @@ func main() {
 		return
 	}
 
-	fmt.Println("Give me that shit.")
+	client.StartClient()
 }
