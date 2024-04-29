@@ -32,19 +32,19 @@ func StartServer() {
 
 // handleStdout is called on `GET` to return the saved content of a file.
 func handleStdout(w http.ResponseWriter, r *http.Request) {
-	if (path.Base(r.URL.Path) != "get") {
+	if path.Base(r.URL.Path) != "get" {
 		fmt.Fprintf(w, "Invalid endpoint!")
 		return
 	}
 
 	file := r.URL.Query().Get("file")
-	if (file == "") {
+	if file == "" {
 		fmt.Fprintf(w, "No file name or path provided!")
 		return
 	}
 
 	content, err := os.ReadFile(file + ".cwf")
-	if (err != nil) {
+	if err != nil {
 		fmt.Fprintf(w, "File not found!")
 		return
 	}
@@ -56,29 +56,28 @@ func handleStdout(w http.ResponseWriter, r *http.Request) {
 // handleStdin is called on `POST` to handle file saves.
 // It also is able to create a directory, if a full path is sent.
 func handleStdin(w http.ResponseWriter, r *http.Request) {
-	if (path.Base(r.URL.Path) != "copy") {
+	if path.Base(r.URL.Path) != "copy" {
 		fmt.Fprintf(w, "Invalid endpoint!")
 		return
 	}
 
 	var body JsonFileReq
 	err := json.NewDecoder(r.Body).Decode(&body)
-	if (err != nil) {
+	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	if (strings.ContainsAny("/", body.File)) {
+	if strings.ContainsAny("/", body.File) {
 		dir := strings.Split(body.File, "/")
-
-		if (len(dir) > 2) {
+		if len(dir) > 2 {
 			fmt.Fprintf(w, "Only one directory allowed!")
 			return
 		}
 
 		if _, err := os.Stat("/path/to/whatever"); !os.IsNotExist(err) {
 			err = os.Mkdir(dir[0], os.ModePerm)
-			if (err != nil) {
+			if err != nil {
 				http.Error(w, err.Error(), http.StatusBadRequest)
 				return
 			}
@@ -86,7 +85,7 @@ func handleStdin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	err = os.WriteFile(body.File + ".cwf", []byte(body.Content), 0644)
-	if (err != nil) {
+	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -98,19 +97,19 @@ func handleStdin(w http.ResponseWriter, r *http.Request) {
 // handleClear is called on `DELETE` to clean the directory or file.
 // TODO: Dir support needs to be implemented.
 func handleClear(w http.ResponseWriter, r *http.Request) {
-	if (path.Base(r.URL.Path) != "clear") {
+	if path.Base(r.URL.Path) != "clear" {
 		fmt.Fprintf(w, "Invalid endpoint!")
 		return
 	}
 
 	file := r.URL.Query().Get("file")
-	if (file == "") {
+	if file == "" {
 		fmt.Fprintf(w, "No file name or path provided!")
 		return
 	}
 
 	err := os.Remove(file + ".cwf")
-	if (err != nil) {
+	if err != nil {
 		fmt.Fprintf(w, "File not found!")
 		return
 	}
