@@ -13,6 +13,7 @@
 - [x] create dir if path passed as name
 - [ ] hashing/enryption
 - [ ] list all files after date (more options for sorting?)
+- [ ] adding flag to setup port additionaly reading from config file setting dir/dirDepth/port
 
 ## Feature list - Client
 - [ ] copy into cwf
