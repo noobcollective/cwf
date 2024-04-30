@@ -11,7 +11,6 @@
 - [x] clean file
 - [x] check if file exists
 - [x] create dir if path passed as name
-- [ ] hashing/enryption
 - [ ] list all files after date (more options for sorting?)
 
 ## Feature list - Client

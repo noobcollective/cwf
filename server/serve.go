@@ -9,15 +9,9 @@ import (
 	"path"
 	"encoding/json"
 	"strings"
+
+	"cwf/entities"
 )
-
-
-// Typedef to parse the JSON body of the request correctly.
-type JsonFileReq struct {
-    File string
-    Content string
-}
-
 
 // Start the server and setup needed endpoits.
 func StartServer() {
@@ -61,7 +55,7 @@ func handleStdin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var body JsonFileReq
+	var body entities.CWFBody_t
 	err := json.NewDecoder(r.Body).Decode(&body)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
