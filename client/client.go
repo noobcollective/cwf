@@ -16,11 +16,31 @@ import (
 
 
 func StartClient() {
-	if !stdInFromPipe() {
-		fmt.Println("not from pipe... do we want to handle this?")
+	fmt.Println(os.Args)
+	if stdInFromPipe() {
+		sendContent()
 		return
 	}
 
+
+	// 1) If no flag provided we want to paste from server
+	res, err := http.Get("http://127.0.0.1:8787/cwf/get?file=" + os.Args[1])
+
+	if err != nil {
+		fmt.Println("Error getting content!")
+		return
+	}
+
+	bodyEncoded, err := io.ReadAll(res.Body)
+	bodyDecoded, err := base64.StdEncoding.DecodeString(string(bodyEncoded))
+        if err != nil {
+			fmt.Println("Failed to decode body!")
+        }
+	fmt.Println(string(bodyDecoded))
+}
+
+
+func sendContent() {
 	content, err := io.ReadAll(os.Stdin)
 
 	if err != nil {
@@ -29,13 +49,14 @@ func StartClient() {
 	}
 
 	encStr := base64.StdEncoding.EncodeToString(content)
-	body, err := json.Marshal(entities.CWFBody_t{File: "test", Content: encStr})
+	body, err := json.Marshal(entities.CWFBody_t{File: os.Args[1], Content: encStr})
+	// TODO: Handle response correctly (e.g. file already exists -> prompt to override)
 	res, err := http.Post("http://127.0.0.1:8787/cwf/copy", "application/json", bytes.NewBuffer(body))
 
-	fmt.Println(string(body))
-	fmt.Println(res)
-}
+	bodyStr, err := io.ReadAll(res.Body)
 
+	fmt.Println(string(bodyStr))
+}
 
 // Check if we are getting content from pipe.
 func stdInFromPipe() bool {

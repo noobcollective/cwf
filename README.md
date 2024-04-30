@@ -27,3 +27,31 @@
 - [ ] peer to peer
 - [ ] diffs over snapshots
 - [ ] only stdout a range (e.g cwf test1 -r 25,30)
+
+## Example commands - Executed by Client
+# Sending Text to server
+cat main.go | ./cwf testerfile
+
+# Sending text range to server
+cat main.go | ./cwf --r 20-30 testerfile
+
+# Pasting content from server to client
+./cwf testerfile
+
+# Clear single file
+./cwf -d testerfile
+- d -> delete
+
+# Clear all files
+./cwf -deleteAll
+
+# List files in main dir and/or number of elements
+./cwf -l -t
+- l -> list
+- t -> show file tree
+
+# List files in specific dir
+./cwf -l dirName
+
+# Nice to haves
+./cwf -size testerfile

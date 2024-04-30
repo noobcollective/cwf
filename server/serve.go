@@ -13,6 +13,8 @@ import (
 	"cwf/entities"
 )
 
+var FILE_SUFFIX string = ".cwf"
+
 // Start the server and setup needed endpoits.
 func StartServer() {
 	// Endpoints
@@ -37,7 +39,7 @@ func handleStdout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	content, err := os.ReadFile(file + ".cwf")
+	content, err := os.ReadFile(file + FILE_SUFFIX)
 	if err != nil {
 		fmt.Fprintf(w, "File not found!")
 		return
@@ -58,33 +60,41 @@ func handleStdin(w http.ResponseWriter, r *http.Request) {
 	var body entities.CWFBody_t
 	err := json.NewDecoder(r.Body).Decode(&body)
 	if err != nil {
+		fmt.Println(err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	if strings.ContainsAny("/", body.File) {
-		dir := strings.Split(body.File, "/")
-		if len(dir) > 2 {
-			fmt.Fprintf(w, "Only one directory allowed!")
+	if strings.Contains(body.File, "..") {
+		fmt.Fprintf(w, "Not allowed!")
+		return
+	}
+
+	if strings.Contains(body.File, "/") {
+		dirs := strings.Split(body.File, "/")
+		if len(dirs) > 2 {
+			fmt.Fprintf(w, "Not allowed!")
 			return
 		}
 
-		if _, err := os.Stat("/path/to/whatever"); !os.IsNotExist(err) {
-			err = os.Mkdir(dir[0], os.ModePerm)
+		if _, err := os.Stat(dirs[0]); os.IsNotExist(err) {
+			err = os.Mkdir(dirs[0], os.ModePerm)
 			if err != nil {
+				fmt.Println(err)
 				http.Error(w, err.Error(), http.StatusBadRequest)
 				return
 			}
 		}
 	}
 
-	err = os.WriteFile(body.File + ".cwf", []byte(body.Content), 0644)
+	err = os.WriteFile(body.File + FILE_SUFFIX, []byte(body.Content), 0644)
 	if err != nil {
+		fmt.Println(err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	fmt.Fprintf(w, "Saved to %s", body.File)
+	fmt.Fprintf(w, "Saved to: " + body.File)
 }
 
 
@@ -102,7 +112,7 @@ func handleClear(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := os.Remove(file + ".cwf")
+	err := os.Remove(file + FILE_SUFFIX)
 	if err != nil {
 		fmt.Fprintf(w, "File not found!")
 		return
