@@ -33,9 +33,10 @@ func StartClient() {
 
 	bodyEncoded, err := io.ReadAll(res.Body)
 	bodyDecoded, err := base64.StdEncoding.DecodeString(string(bodyEncoded))
-        if err != nil {
-			fmt.Println("Failed to decode body!")
-        }
+	if err != nil {
+		fmt.Println("Failed to decode body!")
+	}
+
 	fmt.Println(string(bodyDecoded))
 }
 
@@ -52,6 +53,7 @@ func sendContent() {
 	body, err := json.Marshal(entities.CWFBody_t{File: os.Args[1], Content: encStr})
 	// TODO: Handle response correctly (e.g. file already exists -> prompt to override)
 	res, err := http.Post("http://127.0.0.1:8787/cwf/copy", "application/json", bytes.NewBuffer(body))
+	// TODO: Handle error
 
 	bodyStr, err := io.ReadAll(res.Body)
 

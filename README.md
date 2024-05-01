@@ -4,6 +4,7 @@
 - [ ] prefix paths with cwf home (preferable in a config file) - defaults to `/tmp/cwf/`
 - [ ] more secure content (because base64 - wtf)
 - [ ] chown directories to specific users
+- [ ] safe error handling (e.g. handle error responses in client)
 
 ## Feature list - Server
 - [x] copy into cwf
@@ -30,28 +31,28 @@
 
 ## Example commands - Executed by Client
 # Sending Text to server
-cat main.go | ./cwf testerfile
+- [x] cat main.go | ./cwf testerfile
 
 # Sending text range to server
-cat main.go | ./cwf --r 20-30 testerfile
+- [ ] cat main.go | ./cwf --r 20-30 testerfile
 
 # Pasting content from server to client
-./cwf testerfile
+- [x] ./cwf testerfile
 
 # Clear single file
-./cwf -d testerfile
+- [ ] ./cwf -d testerfile
 - d -> delete
 
 # Clear all files
-./cwf -deleteAll
+- [ ] ./cwf -deleteAll
 
 # List files in main dir and/or number of elements
-./cwf -l -t
+- [ ] ./cwf -l -t
 - l -> list
 - t -> show file tree
 
 # List files in specific dir
-./cwf -l dirName
+- [ ] ./cwf -l dirName
 
 # Nice to haves
-./cwf -size testerfile
+- [ ] ./cwf -size testerfile
