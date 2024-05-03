@@ -12,7 +12,8 @@
 - [x] clean file
 - [x] check if file exists
 - [x] create dir if path passed as name
-- [ ] list all files after date (more options for sorting?)
+- [x] list all files after date (more options for sorting?)
+  - Currently only listing files in directory in modified order. NO additional sorting is supported
 - [ ] adding flag to setup port additionaly reading from config file setting dir/dirDepth/port
 
 ## Feature list - Client
