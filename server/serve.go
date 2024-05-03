@@ -48,7 +48,7 @@ func handleStdout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Fprintf(w, string(content))
+	w.Write(content)
 }
 
 // handleStdin is called on `POST` to handle file saves.
