@@ -1,13 +1,15 @@
 package server
+
 // Package to start the CWF server and handle all actions.
 
 import (
+	"encoding/json"
+	"fmt"
+	"log"
 	"net/http"
 	"os"
-	"log"
-	"fmt"
 	"path"
-	"encoding/json"
+	"sort"
 	"strings"
 
 	"cwf/entities"
@@ -21,10 +23,11 @@ func StartServer() {
 	http.HandleFunc("/cwf/get", handleStdout)
 	http.HandleFunc("/cwf/copy", handleStdin)
 	http.HandleFunc("/cwf/clear", handleClear)
+	http.HandleFunc("/cwf/list", handleList)
 
+	// TODO: Make port either use global var or better via comline line or config file
 	log.Fatal(http.ListenAndServe(":8787", nil))
 }
-
 
 // handleStdout is called on `GET` to return the saved content of a file.
 func handleStdout(w http.ResponseWriter, r *http.Request) {
@@ -47,7 +50,6 @@ func handleStdout(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Fprintf(w, string(content))
 }
-
 
 // handleStdin is called on `POST` to handle file saves.
 // It also is able to create a directory, if a full path is sent.
@@ -87,16 +89,15 @@ func handleStdin(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	err = os.WriteFile(body.File + FILE_SUFFIX, []byte(body.Content), 0644)
+	err = os.WriteFile(body.File+FILE_SUFFIX, []byte(body.Content), 0644)
 	if err != nil {
 		fmt.Println(err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	fmt.Fprintf(w, "Saved to: " + body.File)
+	fmt.Fprintf(w, "Saved to: "+body.File)
 }
-
 
 // handleClear is called on `DELETE` to clean the directory or file.
 // TODO: Dir support needs to be implemented.
@@ -119,4 +120,28 @@ func handleClear(w http.ResponseWriter, r *http.Request) {
 	}
 
 	fmt.Fprintf(w, "Cleared!")
+}
+
+// TODO: Work in progress currently i just print on the server, we need to return to the client
+func handleList(w http.ResponseWriter, r *http.Request) {
+	// TODO: This has been now written 5 times we should use a wrapper for this call
+	if path.Base(r.URL.Path) != "list" {
+		fmt.Fprintf(w, "Invalid endpoint!")
+		return
+	}
+
+	content, err := os.ReadDir("./")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	sort.Slice(content, func(i int, j int) bool {
+		fileI, _ := content[i].Info()
+		fileJ, _ := content[j].Info()
+		return fileI.ModTime().Before(fileJ.ModTime())
+	})
+
+	for _, e := range content {
+		fmt.Println(e.Name())
+	}
 }

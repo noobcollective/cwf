@@ -1,11 +1,11 @@
 package main
 
 import (
-	"fmt"
-	"flag"
-	"os"
 	"cwf/client"
 	"cwf/server"
+	"flag"
+	"fmt"
+	"os"
 )
 
 func main() {
@@ -16,9 +16,9 @@ func main() {
 
 	asDaemon := flag.Bool("serve", false, "Start as daemon.")
 
-	listFiles := flag.Bool("l", false, "List all clipboard filenames")
+	//listFiles := flag.Bool("l", false, "List all clipboard filenames")
 	flag.Parse()
-	fmt.Println(listFiles)
+	//fmt.Println(listFiles)
 
 	if *asDaemon {
 		server.StartServer()
