@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"path"
 	"sort"
@@ -31,7 +32,7 @@ func StartServer() {
 
 // handleStdout is called on `GET` to return the saved content of a file.
 func handleStdout(w http.ResponseWriter, r *http.Request) {
-	if path.Base(r.URL.Path) != "get" {
+	if !allowedEndpoint(r.URL, "get") {
 		fmt.Fprintf(w, "Invalid endpoint!")
 		return
 	}
@@ -54,7 +55,7 @@ func handleStdout(w http.ResponseWriter, r *http.Request) {
 // handleStdin is called on `POST` to handle file saves.
 // It also is able to create a directory, if a full path is sent.
 func handleStdin(w http.ResponseWriter, r *http.Request) {
-	if path.Base(r.URL.Path) != "copy" {
+	if !allowedEndpoint(r.URL, "copy") {
 		fmt.Fprintf(w, "Invalid endpoint!")
 		return
 	}
@@ -102,7 +103,7 @@ func handleStdin(w http.ResponseWriter, r *http.Request) {
 // handleClear is called on `DELETE` to clean the directory or file.
 // TODO: Dir support needs to be implemented.
 func handleClear(w http.ResponseWriter, r *http.Request) {
-	if path.Base(r.URL.Path) != "clear" {
+	if !allowedEndpoint(r.URL, "clear") {
 		fmt.Fprintf(w, "Invalid endpoint!")
 		return
 	}
@@ -125,7 +126,8 @@ func handleClear(w http.ResponseWriter, r *http.Request) {
 // TODO: Work in progress currently i just print on the server, we need to return to the client
 func handleList(w http.ResponseWriter, r *http.Request) {
 	// TODO: This has been now written 5 times we should use a wrapper for this call
-	if path.Base(r.URL.Path) != "list" {
+	// INFO: My implemenation = not really helpfull
+	if !allowedEndpoint(r.URL, "list") {
 		fmt.Fprintf(w, "Invalid endpoint!")
 		return
 	}
@@ -155,4 +157,10 @@ func handleList(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Write([]byte(response))
+}
+
+
+// Check if endpoint is allowed for current action.
+func allowedEndpoint(filepath *url.URL, endpoint string) bool {
+	return path.Base(filepath.Path) == endpoint
 }
