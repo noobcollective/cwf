@@ -14,54 +14,84 @@ import (
 	"cwf/entities"
 )
 
-
+// Start client and handle action types.
 func StartClient() {
 	fmt.Println(os.Args)
-	if stdInFromPipe() {
+
+	if fromPipe() {
 		sendContent()
 		return
 	}
 
+	// If no flags provided we want to print out content.
+	getContent()
+}
 
-	// 1) If no flag provided we want to paste from server
+
+// Send content to server to save it encoded in specified file.
+func sendContent() {
+	checkArgsFilename()
+	content, err := io.ReadAll(os.Stdin)
+	if err != nil { panic("Error reading content from StdIn") }
+
+	encStr := base64.StdEncoding.EncodeToString(content)
+	body, err := json.Marshal(entities.CWFBody_t{File: os.Args[1], Content: encStr})
+	if err != nil { panic("Error encoding data.") }
+
+	res, err := http.Post("http://127.0.0.1:8787/cwf/copy",
+					"application/json", bytes.NewBuffer(body))
+	// TODO: Handle response correctly (e.g. file already exists -> prompt to override)
+	if err != nil { panic("Error sending request.") }
+
+	bodyStr, err := io.ReadAll(res.Body)
+	fmt.Println(string(bodyStr))
+}
+
+
+// Get content of clipboard file.
+func getContent() {
+	checkArgsFilename()
 	res, err := http.Get("http://127.0.0.1:8787/cwf/get?file=" + os.Args[1])
-
-	if err != nil {
-		fmt.Println("Error getting content!")
-		return
-	}
+	if err != nil { panic("Error getting content!") }
 
 	bodyEncoded, err := io.ReadAll(res.Body)
 	bodyDecoded, err := base64.StdEncoding.DecodeString(string(bodyEncoded))
-	if err != nil {
-		fmt.Println("Failed to decode body!")
-	}
+	if err != nil { panic("Failed to decode body!") }
 
 	fmt.Println(string(bodyDecoded))
 }
 
 
-func sendContent() {
-	content, err := io.ReadAll(os.Stdin)
-
-	if err != nil {
-		fmt.Println("Problem reading content.")
-		return
+// Check for flags and decide what to do.
+// INFO: WIP - not all eventes are handled yet.
+func doFlaggedAction(flag string) {
+	flagLookup := map[string]string {
+		"-l": "list",
+		"-lt": "list-tree",
+		"-d": "delete",
 	}
 
-	encStr := base64.StdEncoding.EncodeToString(content)
-	body, err := json.Marshal(entities.CWFBody_t{File: os.Args[1], Content: encStr})
-	// TODO: Handle response correctly (e.g. file already exists -> prompt to override)
-	res, err := http.Post("http://127.0.0.1:8787/cwf/copy", "application/json", bytes.NewBuffer(body))
-	// TODO: Handle error
+	requestUrl := "127.0.0.1:8787/cwf/" + flagLookup[flag]
 
-	bodyStr, err := io.ReadAll(res.Body)
+	if flag == "-d" {
+		checkArgsFilename()
+		requestUrl += "?file=" + os.Args[1]
+	}
+	res, err := http.Get(requestUrl)
+	if err != nil { panic("Error sending request.") }
 
-	fmt.Println(string(bodyStr))
+	fmt.Println(res)
 }
 
+
 // Check if we are getting content from pipe.
-func stdInFromPipe() bool {
+func fromPipe() bool {
 	content, _ := os.Stdin.Stat()
 	return content.Mode() & os.ModeCharDevice == 0
+}
+
+
+// Check arguments for filename -> panics if no filename is given via args.
+func checkArgsFilename() {
+	if (len(os.Args) < 2) { panic("No filename given.") }
 }

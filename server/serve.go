@@ -23,7 +23,7 @@ func StartServer() {
 	// Endpoints
 	http.HandleFunc("/cwf/get", handleStdout)
 	http.HandleFunc("/cwf/copy", handleStdin)
-	http.HandleFunc("/cwf/clear", handleClear)
+	http.HandleFunc("/cwf/delete", handleDelete)
 	http.HandleFunc("/cwf/list", handleList)
 
 	// TODO: Make port either use global var or better via comline line or config file
@@ -104,10 +104,10 @@ func handleStdin(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Saved to: "+body.File+"\n")
 }
 
-// handleClear is called on `DELETE` to clean the directory or file.
+// handleDelete is called on `DELETE` to clean the directory or file.
 // TODO: Dir support needs to be implemented.
-func handleClear(w http.ResponseWriter, r *http.Request) {
-	if !allowedEndpoint(r.URL, "clear") {
+func handleDelete(w http.ResponseWriter, r *http.Request) {
+	if !allowedEndpoint(r.URL, "delete") {
 		fmt.Fprintf(w, "Invalid endpoint!")
 		return
 	}
@@ -137,7 +137,7 @@ func handleClear(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Fprintf(w, "Cleared!")
+	fmt.Fprintf(w, "Cleared file: " + file)
 }
 
 // TODO: Work in progress currently i just print on the server, we need to return to the client
