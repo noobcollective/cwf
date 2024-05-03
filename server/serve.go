@@ -39,13 +39,13 @@ func handleStdout(w http.ResponseWriter, r *http.Request) {
 
 	file := r.URL.Query().Get("file")
 	if file == "" {
-		fmt.Fprintf(w, "No file name or path provided!")
+		fmt.Fprintf(w, "No file name or path provided!\n")
 		return
 	}
 
 	content, err := os.ReadFile(file + FILE_SUFFIX)
 	if err != nil {
-		fmt.Fprintf(w, "File not found!")
+		fmt.Fprintf(w, "File not found!\n")
 		return
 	}
 
@@ -73,14 +73,14 @@ func handleStdin(w http.ResponseWriter, r *http.Request) {
 	// body.File = ../test.cwf resolves to: `/tmp` -> not allowed (not in basedir)
 	// body.File = ../var/ resolves to: `/var` -> also not allowed (not in basedir)
 	if strings.Contains(body.File, "..") {
-		fmt.Fprintf(w, "Not allowed!")
+		fmt.Fprintf(w, "Not allowed!\n")
 		return
 	}
 
 	if strings.Contains(body.File, "/") {
 		dirs := strings.Split(body.File, "/")
 		if len(dirs) > 2 {
-			fmt.Fprintf(w, "Not allowed!")
+			fmt.Fprintf(w, "Not allowed!\n")
 			return
 		}
 
@@ -101,7 +101,7 @@ func handleStdin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Fprintf(w, "Saved to: "+body.File)
+	fmt.Fprintf(w, "Saved to: "+body.File+"\n")
 }
 
 // handleClear is called on `DELETE` to clean the directory or file.
@@ -112,15 +112,28 @@ func handleClear(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	file := r.URL.Query().Get("file")
-	if file == "" {
-		fmt.Fprintf(w, "No file name or path provided!")
+	var body entities.CWFBody_t
+	err := json.NewDecoder(r.Body).Decode(&body)
+	if err != nil {
+		fmt.Println(err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	err := os.Remove(file + FILE_SUFFIX)
+	if strings.Contains(body.File, "..") {
+		fmt.Fprintf(w, "Not allowed!\n")
+		return
+	}
+
+	file := r.URL.Query().Get("file")
+	if file == "" {
+		fmt.Fprintf(w, "No file name or path provided!\n")
+		return
+	}
+
+	err = os.Remove(file + FILE_SUFFIX)
 	if err != nil {
-		fmt.Fprintf(w, "File not found!")
+		fmt.Fprintf(w, "File not found!\n")
 		return
 	}
 
@@ -136,10 +149,24 @@ func handleList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO: I guess we need to give the posibility to show files of directories and not only the "root"
-	content, err := os.ReadDir("./")
+	targetDir := r.URL.Query().Get("dir")
+
+	if strings.Contains(targetDir, "..") {
+		fmt.Println("------------------------")
+		fmt.Println("Client tried to call \"..\" Called by: " + r.RemoteAddr)
+		fmt.Println("------------------------")
+		fmt.Fprintf(w, "Not allowed!\n")
+		return
+	}
+
+	content, err := os.ReadDir("./" + targetDir)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Println("------------------------")
+		fmt.Println(err)
+		fmt.Println("Called by: " + r.RemoteAddr)
+		fmt.Println("------------------------")
+		fmt.Fprintf(w, "No such directory\n")
+		return
 	}
 
 	sort.Slice(content, func(i int, j int) bool {
@@ -162,7 +189,6 @@ func handleList(w http.ResponseWriter, r *http.Request) {
 
 	w.Write([]byte(response))
 }
-
 
 // Check if endpoint is allowed for current action.
 func allowedEndpoint(filepath *url.URL, endpoint string) bool {
