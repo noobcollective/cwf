@@ -130,6 +130,7 @@ func handleList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// TODO: I guess we need to give the posibility to show files of directories and not only the "root"
 	content, err := os.ReadDir("./")
 	if err != nil {
 		log.Fatal(err)
@@ -141,7 +142,17 @@ func handleList(w http.ResponseWriter, r *http.Request) {
 		return fileI.ModTime().Before(fileJ.ModTime())
 	})
 
+	var response string
 	for _, e := range content {
-		fmt.Println(e.Name())
+		modificationTime, _ := e.Info()
+		if e.Type().IsDir() {
+			response += "Dir: \t" + e.Name() + "\t\t Modified: " + modificationTime.ModTime().Format("2006-01-02 15:04:05") + "\n"
+			continue
+		} else if e.Type().IsRegular() {
+			response += "File: \t" + e.Name() + "\t\t Modified: " + modificationTime.ModTime().Format("2006-01-02 15:04:05") + "\n"
+			continue
+		}
 	}
+
+	w.Write([]byte(response))
 }
