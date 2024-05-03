@@ -68,6 +68,10 @@ func handleStdin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// TODO: Resolve path and compare with configured basedir
+	// Example confiuration: /tmp/cwf/
+	// body.File = ../test.cwf resolves to: `/tmp` -> not allowed (not in basedir)
+	// body.File = ../var/ resolves to: `/var` -> also not allowed (not in basedir)
 	if strings.Contains(body.File, "..") {
 		fmt.Fprintf(w, "Not allowed!")
 		return
