@@ -32,7 +32,7 @@ func StartServer() {
 	http.HandleFunc("/", errorHandler)
 
 	// TODO: Make port either use global var or better via comline line or config file
-	log.Fatal(http.ListenAndServe(":8787", nil))
+	log.Fatal(http.ListenAndServe(":" + entities.MotherShip.MotherShipPort, nil))
 }
 
 // handleStdout is called on `GET` to return the saved content of a file.
