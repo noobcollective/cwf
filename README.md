@@ -1,8 +1,8 @@
 # cwf - copy with friends
 
 # Dependencies
-- Added Zap as logging library go.uber.org/zap 
-- Added yaml to parse our config file gopkg.in/yaml.v3 
+- Added Zap as logging library go.uber.org/zap
+- Added yaml to parse our config file gopkg.in/yaml.v3
 
 ## TODO:
 - [ ] prefix paths with cwf home (preferable in a config file) - defaults to `/tmp/cwf/`
@@ -61,3 +61,6 @@
 - [ ] diffs over snapshots
 - [ ] chown directories to specific users
 - [ ] only stdout a range (e.g cwf test1 -r 25,30)
+
+## Our Blog
+https://project-folio.eu
