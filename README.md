@@ -8,6 +8,7 @@
 - [ ] prefix paths with cwf home (preferable in a config file) - defaults to `/tmp/cwf/`
 - [ ] more secure content (because base64 - wtf)
 - [x] safe error handling (e.g. handle error responses in client)
+- [ ] fix path for config file in resulting binary (for now it uses `pwd`, which is not a good idea, because `cwf` should lay in `<somewhere>/bin`)
 
 ## Feature list - Server
 - [x] copy into cwf
