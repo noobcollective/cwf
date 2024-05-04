@@ -1,5 +1,4 @@
 package client
-
 // Package for client. I'm too tired to think of a better explanation.
 
 import (
@@ -10,7 +9,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	// "strings"
 	"os"
 
 	"cwf/entities"
@@ -20,6 +18,8 @@ var flagLookup = map[string]string{
 	"-l":  "list",
 	"-lt": "list-tree",
 }
+
+var baseURL = "http://" + entities.MotherShip.MotherShipIP + ":" + entities.MotherShip.MotherShipPort
 
 // Start client and handle action types.
 func StartClient() {
@@ -52,7 +52,7 @@ func sendContent() {
 		panic("Error encoding data.")
 	}
 
-	res, err := http.Post("http://127.0.0.1:8787/cwf/copy",
+	res, err := http.Post(baseURL + "/copy",
 		"application/json", bytes.NewBuffer(body))
 	if err != nil {
 		panic("Error sending request.")
@@ -69,7 +69,7 @@ func sendContent() {
 
 // Get content of clipboard file.
 func getContent() {
-	res, err := http.Get("http://127.0.0.1:8787/cwf/get?file=" + os.Args[1])
+	res, err := http.Get(baseURL + "/get?file=" + os.Args[1])
 	if err != nil {
 		panic("Error getting content!")
 	}
@@ -90,7 +90,7 @@ func getContent() {
 
 // Get a list from server.
 func listFiles() {
-	requestUrl := "http://127.0.0.1:8787/cwf/list"
+	requestUrl := baseURL + "/list"
 	if len(os.Args) > 2 {
 		requestUrl += "?dir=" + os.Args[2]
 	}
@@ -117,7 +117,7 @@ func deleteFile() {
 	}
 
 	client := &http.Client{}
-	requestUrl := "http://127.0.0.1:8787/cwf/delete?file=" + os.Args[2]
+	requestUrl := baseURL + "/delete?file=" + os.Args[2]
 	req, err := http.NewRequest("DELETE", requestUrl, nil)
 
 	res, err := client.Do(req)
