@@ -8,13 +8,11 @@ import (
 	"os"
 )
 
+var asDaemon = flag.Bool("serve", false, "Start as daemon.")
+var list = flag.String("l", "", "List files.")
+
 func main() {
-
-	if len(os.Args) == 1 {
-		panic("Please use args or provide a filename")
-	}
-
-	asDaemon := flag.Bool("serve", false, "Start as daemon.")
+	if len(os.Args) == 1 { panic("Please use args or provide a filename") }
 
 	//listFiles := flag.Bool("l", false, "List all clipboard filenames")
 	flag.Parse()
