@@ -21,6 +21,7 @@ var FILE_SUFFIX string = ".cwf"
 
 // Start the server and setup needed endpoits.
 func StartServer() {
+	zap.L().Info("Welcome to CopyWithFriends -> cwf")
 	// Endpoints
 	http.HandleFunc("/cwf/get", handleStdout)
 	http.HandleFunc("/cwf/copy", handleStdin)
@@ -180,6 +181,7 @@ func handleList(w http.ResponseWriter, r *http.Request) {
 }
 
 func errorHandler(w http.ResponseWriter, r *http.Request) {
+	zap.L().Warn("User called Endpoint " + r.URL.Path + " and is a bad boy")
 	writeRes(w, http.StatusNotFound, "YOU ARE A BAD BOY, ONLY USE cwf client for making requests\n")
 	// TODO: We should probabyl ban/block such ip addresses which try acces endpoints without the cwf client
 }

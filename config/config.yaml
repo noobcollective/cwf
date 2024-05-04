@@ -1,3 +1,4 @@
 ---
  motherShipIP: "127.0.0.1"
  motherShipPort: "8787"
+ morhterShipCWFDirectory: "./cwf_files"

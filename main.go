@@ -31,8 +31,8 @@ func init() {
 		panic("Config file could not be parsed")
 	}
 
-	if entities.MotherShip.MotherShipIP == "" || entities.MotherShip.MotherShipPort == "" {
-		panic("IP address to Server is not provided")
+	if entities.MotherShip.MotherShipIP == "" || entities.MotherShip.MotherShipPort == "" || entities.MotherShip.MotherShipCWFDirectory == "" {
+		panic("IP address, Port or CWF File directory is not provided")
 	}
 }
 
@@ -40,8 +40,6 @@ func main() {
 	if len(os.Args) == 1 {
 		panic("Please use args or provide a filename")
 	}
-
-	zap.L().Info("Welcome to CopyWithFriends -> cwf")
 
 	//listFiles := flag.Bool("l", false, "List all clipboard filenames")
 	flag.Parse()
