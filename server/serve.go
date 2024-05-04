@@ -116,21 +116,6 @@ func handleDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var body entities.CWFBody_t
-	err := json.NewDecoder(r.Body).Decode(&body)
-	if err != nil {
-		zap.L().Error(err.Error())
-		zap.L().Info(err.Error())
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	if strings.Contains(body.File, "..") {
-		zap.L().Warn("Client called .. path")
-		writeRes(w, http.StatusForbidden, "Not allowd!")
-		return
-	}
-
 	file := r.URL.Query().Get("file")
 	if file == "" {
 		zap.L().Warn("No file or path provided")
@@ -138,7 +123,7 @@ func handleDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = os.Remove(file + FILE_SUFFIX)
+	err := os.Remove(file + FILE_SUFFIX)
 	if err != nil {
 		zap.L().Warn("File not found")
 		writeRes(w, http.StatusNotFound, "File not found!")
