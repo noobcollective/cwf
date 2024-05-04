@@ -27,6 +27,9 @@ func StartServer() {
 	http.HandleFunc("/cwf/delete", handleDelete)
 	http.HandleFunc("/cwf/list", handleList)
 
+	// Changing default errorHandler for unknown endpoints
+	http.HandleFunc("/", errorHandler)
+
 	// TODO: Make port either use global var or better via comline line or config file
 	log.Fatal(http.ListenAndServe(":8787", nil))
 }
@@ -191,9 +194,15 @@ func handleList(w http.ResponseWriter, r *http.Request) {
 	writeRes(w, http.StatusOK, response)
 }
 
+func errorHandler(w http.ResponseWriter, r *http.Request) {
+	writeRes(w, http.StatusNotFound, "YOU ARE A BAD BOY, ONLY USE cwf client for making requests\n")
+	// TODO: We should probabyl ban/block such ip addresses which try acces endpoints without the cwf client
+}
+
 // Respond the go way.
 func writeRes(w http.ResponseWriter, statuscode int, content string) {
 	w.WriteHeader(statuscode)
+	// TODO: add \n at end of string
 	w.Write([]byte(content))
 }
 
