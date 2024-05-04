@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"flag"
 	"io"
 	"net/http"
 	"os"
@@ -14,17 +15,22 @@ import (
 	"cwf/entities"
 )
 
+var flagLookup = map[string]string {
+	"-l": "list",
+	"-lt": "list-tree",
+	"-d": "delete",
+}
+
 // Start client and handle action types.
 func StartClient() {
-	fmt.Println(os.Args)
-
 	if fromPipe() {
 		sendContent()
 		return
 	}
 
+	fmt.Println(flag.Lookup("l").Value)
 	// If no flags provided we want to print out content.
-	getContent()
+	// getContent()
 }
 
 
@@ -65,12 +71,6 @@ func getContent() {
 // Check for flags and decide what to do.
 // INFO: WIP - not all eventes are handled yet.
 func doFlaggedAction(flag string) {
-	flagLookup := map[string]string {
-		"-l": "list",
-		"-lt": "list-tree",
-		"-d": "delete",
-	}
-
 	requestUrl := "127.0.0.1:8787/cwf/" + flagLookup[flag]
 
 	if flag == "-d" {
