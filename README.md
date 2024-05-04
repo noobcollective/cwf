@@ -9,7 +9,7 @@
 - [ ] more secure content (because base64 - wtf)
 
 - [ ] chown directories to specific users
-- [ ] safe error handling (e.g. handle error responses in client)
+- [x] safe error handling (e.g. handle error responses in client)
 
 ## Feature list - Server
 - [x] copy into cwf
@@ -21,19 +21,15 @@
   - Currently only listing files in directory in modified order. NO additional sorting is supported
 - [ ] adding flag to setup port additionaly reading from config file setting dir/dirDepth/port
   - Implemented with yaml (I thought yaml is toml and toml is yaml) so currently its working with a yaml file but i actually want a toml file
+
 ## Feature list - Client
-- [ ] copy into cwf
-- [ ] stdout of cwf
-- [ ] clean file
+- [x] copy into cwf
+- [x] stdout of cwf
+- [x] clean file
 - [ ] check if file exists
 - [ ] hashing/enryption
-- [ ] list all files after date (more options for sorting?)
-- [ ] create dir if path passed as name
-
-## Later ideas:
-- [ ] peer to peer
-- [ ] diffs over snapshots
-- [ ] only stdout a range (e.g cwf test1 -r 25,30)
+- [x] list all files after date (more options for sorting?)
+- [x] create dir if path passed as name
 
 ## Example commands - Executed by Client
 # Sending Text to server
@@ -46,19 +42,25 @@
 - [x] ./cwf testerfile
 
 # Clear single file
-- [ ] ./cwf -d testerfile
+- [x] ./cwf -d testerfile
 - d -> delete
 
 # Clear all files
 - [ ] ./cwf -deleteAll
 
 # List files in main dir and/or number of elements
-- [ ] ./cwf -l -t
+- [x] ./cwf -l 
+- [ ] ./cwf -lt
 - l -> list
-- t -> show file tree
+- lt -> show file tree
 
 # List files in specific dir
-- [ ] ./cwf -l dirName
+- [ ] ./cwf -l dirName - needs client implementation
 
 # Nice to haves
 - [ ] ./cwf -size testerfile
+
+## Later ideas:
+- [ ] peer to peer
+- [ ] diffs over snapshots
+- [ ] only stdout a range (e.g cwf test1 -r 25,30)
