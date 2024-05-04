@@ -33,19 +33,19 @@ func StartServer() {
 // handleStdout is called on `GET` to return the saved content of a file.
 func handleStdout(w http.ResponseWriter, r *http.Request) {
 	if !allowedEndpoint(r.URL, "get") {
-		fmt.Fprintf(w, "Invalid endpoint!")
+		writeRes(w, http.StatusForbidden, "Invalid endpoint!")
 		return
 	}
 
 	file := r.URL.Query().Get("file")
 	if file == "" {
-		fmt.Fprintf(w, "No file name or path provided!\n")
+		writeRes(w, http.StatusBadRequest, "No file name or path provided!")
 		return
 	}
 
 	content, err := os.ReadFile(file + FILE_SUFFIX)
 	if err != nil {
-		fmt.Fprintf(w, "File not found!\n")
+		writeRes(w, http.StatusNotFound, "File not found!")
 		return
 	}
 
@@ -56,7 +56,7 @@ func handleStdout(w http.ResponseWriter, r *http.Request) {
 // It also is able to create a directory, if a full path is sent.
 func handleStdin(w http.ResponseWriter, r *http.Request) {
 	if !allowedEndpoint(r.URL, "copy") {
-		fmt.Fprintf(w, "Invalid endpoint!")
+		writeRes(w, http.StatusForbidden, "Invalid endpoint!")
 		return
 	}
 
@@ -73,14 +73,14 @@ func handleStdin(w http.ResponseWriter, r *http.Request) {
 	// body.File = ../test.cwf resolves to: `/tmp` -> not allowed (not in basedir)
 	// body.File = ../var/ resolves to: `/var` -> also not allowed (not in basedir)
 	if strings.Contains(body.File, "..") {
-		fmt.Fprintf(w, "Not allowed!\n")
+		writeRes(w, http.StatusForbidden, "Not allowd!")
 		return
 	}
 
 	if strings.Contains(body.File, "/") {
 		dirs := strings.Split(body.File, "/")
 		if len(dirs) > 2 {
-			fmt.Fprintf(w, "Not allowed!\n")
+			writeRes(w, http.StatusForbidden, "Not allowd!")
 			return
 		}
 
@@ -101,14 +101,14 @@ func handleStdin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Fprintf(w, "Saved to: "+body.File+"\n")
+	writeRes(w, http.StatusOK, "Saved to: " + body.File)
 }
 
 // handleDelete is called on `DELETE` to clean the directory or file.
 // TODO: Dir support needs to be implemented.
 func handleDelete(w http.ResponseWriter, r *http.Request) {
 	if !allowedEndpoint(r.URL, "delete") {
-		fmt.Fprintf(w, "Invalid endpoint!")
+		writeRes(w, http.StatusForbidden, "Invalid endpoint!")
 		return
 	}
 
@@ -121,23 +121,23 @@ func handleDelete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if strings.Contains(body.File, "..") {
-		fmt.Fprintf(w, "Not allowed!\n")
+		writeRes(w, http.StatusForbidden, "Not allowd!")
 		return
 	}
 
 	file := r.URL.Query().Get("file")
 	if file == "" {
-		fmt.Fprintf(w, "No file name or path provided!\n")
+		writeRes(w, http.StatusBadRequest, "No file name or path provided!")
 		return
 	}
 
 	err = os.Remove(file + FILE_SUFFIX)
 	if err != nil {
-		fmt.Fprintf(w, "File not found!\n")
+		writeRes(w, http.StatusNotFound, "File not found!")
 		return
 	}
 
-	fmt.Fprintf(w, "Cleared file: " + file)
+	writeRes(w, http.StatusOK, "Deleted file: " + file)
 }
 
 // TODO: Work in progress currently i just print on the server, we need to return to the client
@@ -145,7 +145,7 @@ func handleList(w http.ResponseWriter, r *http.Request) {
 	// TODO: This has been now written 5 times we should use a wrapper for this call
 	// INFO: My implemenation = not really helpfull
 	if !allowedEndpoint(r.URL, "list") {
-		fmt.Fprintf(w, "Invalid endpoint!")
+		writeRes(w, http.StatusForbidden, "Invalid endpoint!")
 		return
 	}
 
@@ -155,7 +155,7 @@ func handleList(w http.ResponseWriter, r *http.Request) {
 		fmt.Println("------------------------")
 		fmt.Println("Client tried to call \"..\" Called by: " + r.RemoteAddr)
 		fmt.Println("------------------------")
-		fmt.Fprintf(w, "Not allowed!\n")
+		writeRes(w, http.StatusForbidden, "Not allowed!")
 		return
 	}
 
@@ -165,7 +165,7 @@ func handleList(w http.ResponseWriter, r *http.Request) {
 		fmt.Println(err)
 		fmt.Println("Called by: " + r.RemoteAddr)
 		fmt.Println("------------------------")
-		fmt.Fprintf(w, "No such directory\n")
+		writeRes(w, http.StatusNotFound, "No such directory!")
 		return
 	}
 
@@ -187,7 +187,13 @@ func handleList(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	w.Write([]byte(response))
+	writeRes(w, http.StatusOK, response)
+}
+
+// Respond the go way.
+func writeRes(w http.ResponseWriter, statuscode int, content string) {
+	w.WriteHeader(statuscode)
+	w.Write([]byte(content))
 }
 
 // Check if endpoint is allowed for current action.
