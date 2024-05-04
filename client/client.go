@@ -11,24 +11,24 @@ import (
 	"net/http"
 	"os"
 
+	// "go.uber.org/zap"
 	"cwf/entities"
 )
 
+var baseURL string
 var flagLookup = map[string]string{
 	"-l":  "list",
 	"-lt": "list-tree",
 }
 
-var baseURL = "http://" + entities.MotherShip.MotherShipIP + ":" + entities.MotherShip.MotherShipPort
 
 // Start client and handle action types.
 func StartClient() {
+	baseURL = "http://" + entities.MotherShip.MotherShipIP + ":" + entities.MotherShip.MotherShipPort + "/cwf"
+
 	if fromPipe() {
 		sendContent()
-		return
-	}
-
-	if getFlagValue("l") {
+	} else if getFlagValue("l") {
 		listFiles()
 	} else if getFlagValue("lt") {
 		// listTree()
@@ -55,7 +55,9 @@ func sendContent() {
 	res, err := http.Post(baseURL + "/copy",
 		"application/json", bytes.NewBuffer(body))
 	if err != nil {
-		panic("Error sending request.")
+		fmt.Println(err)
+		return
+		// panic("Error sending request.")
 	}
 
 	responseData, err := io.ReadAll(res.Body)
