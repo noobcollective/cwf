@@ -54,13 +54,17 @@ func sendContent() {
 
 	res, err := http.Post("http://127.0.0.1:8787/cwf/copy",
 		"application/json", bytes.NewBuffer(body))
-	// TODO: Handle response correctly (e.g. file already exists -> prompt to override)
 	if err != nil {
 		panic("Error sending request.")
 	}
 
-	bodyStr, err := io.ReadAll(res.Body)
-	fmt.Println(string(bodyStr))
+	responseData, err := io.ReadAll(res.Body)
+	if res.StatusCode != http.StatusOK {
+		fmt.Println(string(responseData))
+		return
+	}
+
+	fmt.Println(string(responseData))
 }
 
 // Get content of clipboard file.
@@ -87,19 +91,22 @@ func getContent() {
 // Get a list from server.
 func listFiles() {
 	requestUrl := "http://127.0.0.1:8787/cwf/list"
+	if len(os.Args) > 2 {
+		requestUrl += "?dir=" + os.Args[2]
+	}
 
 	res, err := http.Get(requestUrl)
 	if err != nil {
 		panic("Error sending request.")
 	}
 
-	bodyEncoded, err := io.ReadAll(res.Body)
+	responseData, err := io.ReadAll(res.Body)
 	if res.StatusCode != http.StatusOK {
-		fmt.Println(string(bodyEncoded))
+		fmt.Println(string(responseData))
 		return
 	}
 
-	fmt.Println(string(bodyEncoded))
+	fmt.Println(string(responseData))
 }
 
 // Delete a filename from server.
@@ -114,7 +121,9 @@ func deleteFile() {
 	req, err := http.NewRequest("DELETE", requestUrl, nil)
 
 	res, err := client.Do(req)
-	if err != nil { panic("Error sending request.") }
+	if err != nil {
+		panic("Error sending request.")
+	}
 
 	responseData, err := io.ReadAll(res.Body)
 	if res.StatusCode != http.StatusOK {
