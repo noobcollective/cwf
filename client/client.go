@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"os"
 
 	"cwf/entities"
@@ -18,7 +19,6 @@ import (
 var flagLookup = map[string]string{
 	"-l":  "list",
 	"-lt": "list-tree",
-	"-d":  "delete",
 }
 
 // Start client and handle action types.
@@ -28,14 +28,23 @@ func StartClient() {
 		return
 	}
 
-	fmt.Println(flag.Lookup("l").Value)
-	// If no flags provided we want to print out content.
-	// getContent()
+	flag := checkArgsFlags()
+	switch flag {
+		case "-l", "-lt":
+			listFiles(flag)
+		case "-d":
+			deleteFile()
+
+		// If no flags provided we want to print out content.
+		case "":
+		default:
+			getContent()
+	}
 }
 
 // Send content to server to save it encoded in specified file.
 func sendContent() {
-	checkArgsFilename()
+	if !checkArgsFilename() { return }
 	content, err := io.ReadAll(os.Stdin)
 	if err != nil {
 		panic("Error reading content from StdIn")
@@ -60,13 +69,18 @@ func sendContent() {
 
 // Get content of clipboard file.
 func getContent() {
-	checkArgsFilename()
+	if !checkArgsFilename() { return }
 	res, err := http.Get("http://127.0.0.1:8787/cwf/get?file=" + os.Args[1])
 	if err != nil {
 		panic("Error getting content!")
 	}
 
 	bodyEncoded, err := io.ReadAll(res.Body)
+	if res.StatusCode != http.StatusOK {
+		fmt.Println(string(bodyEncoded))
+		return
+	}
+
 	bodyDecoded, err := base64.StdEncoding.DecodeString(string(bodyEncoded))
 	if err != nil {
 		panic("Failed to decode body!")
@@ -75,19 +89,40 @@ func getContent() {
 	fmt.Println(string(bodyDecoded))
 }
 
-// Check for flags and decide what to do.
-// INFO: WIP - not all eventes are handled yet.
-func doFlaggedAction(flag string) {
-	requestUrl := "127.0.0.1:8787/cwf/" + flagLookup[flag]
+// Get a list from server.
+func listFiles(flag string) {
+	requestUrl := "http://127.0.0.1:8787/cwf/" + flagLookup[flag]
 
-	if flag == "-d" {
-		checkArgsFilename()
-		requestUrl += "?file=" + os.Args[1]
-	}
 	res, err := http.Get(requestUrl)
 	if err != nil {
 		panic("Error sending request.")
 	}
+
+	bodyEncoded, err := io.ReadAll(res.Body)
+	if res.StatusCode != http.StatusOK {
+		fmt.Println(string(bodyEncoded))
+		return
+	}
+
+	// bodyDecoded, err := base64.StdEncoding.DecodeString(string(bodyEncoded))
+	// if err != nil { panic("Failed to decode body!") }
+
+	fmt.Println(string(bodyEncoded))
+}
+
+// Delete a filename from server.
+func deleteFile() {
+	if len(os.Args) < 3 {
+		fmt.Println("No filename given to delete.")
+		return
+	}
+
+	client := &http.Client{}
+	requestUrl := "http://127.0.0.1:8787/cwf/delete?file=" + os.Args[2]
+	req, err := http.NewRequest("DELETE", requestUrl, nil)
+
+	res, err := client.Do(req)
+	if err != nil { panic("Error sending request.") }
 
 	fmt.Println(res)
 }
@@ -99,8 +134,20 @@ func fromPipe() bool {
 }
 
 // Check arguments for filename -> panics if no filename is given via args.
-func checkArgsFilename() {
-	if len(os.Args) < 2 {
-		panic("No filename given.")
+func checkArgsFilename() bool {
+	if !strings.Contains(os.Args[1], "-") && len(os.Args) >= 2 {
+		return true
 	}
+
+	fmt.Println("No filename given.")
+	return false
+}
+
+// Check if flags have been passed and return the passed flag.
+func checkArgsFlags() string {
+	if strings.Contains(os.Args[1], "-") && len(os.Args) >= 2 {
+		return os.Args[1]
+	}
+
+	return ""
 }
