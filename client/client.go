@@ -21,7 +21,6 @@ var flagLookup = map[string]string{
 	"-lt": "list-tree",
 }
 
-
 // Start client and handle action types.
 func StartClient() {
 	baseURL = "http://" + entities.MotherShip.MotherShipIP + ":" + entities.MotherShip.MotherShipPort + "/cwf"
@@ -141,7 +140,6 @@ func fromPipe() bool {
 	content, _ := os.Stdin.Stat()
 	return content.Mode()&os.ModeCharDevice == 0
 }
-
 
 // Get value of a flag.
 func getFlagValue(flagName string) bool {
