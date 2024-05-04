@@ -1,5 +1,8 @@
 # cwf - copy with friends
 
+# Dependencies
+- Added Zap as logging library
+
 ## TODO:
 - [ ] prefix paths with cwf home (preferable in a config file) - defaults to `/tmp/cwf/`
 - [ ] more secure content (because base64 - wtf)

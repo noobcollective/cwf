@@ -4,7 +4,6 @@ package server
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"net/url"
@@ -14,6 +13,8 @@ import (
 	"strings"
 
 	"cwf/entities"
+
+	"go.uber.org/zap"
 )
 
 var FILE_SUFFIX string = ".cwf"
@@ -63,7 +64,7 @@ func handleStdin(w http.ResponseWriter, r *http.Request) {
 	var body entities.CWFBody_t
 	err := json.NewDecoder(r.Body).Decode(&body)
 	if err != nil {
-		fmt.Println(err)
+		zap.L().Error(err.Error())
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -87,7 +88,7 @@ func handleStdin(w http.ResponseWriter, r *http.Request) {
 		if _, err := os.Stat(dirs[0]); os.IsNotExist(err) {
 			err = os.Mkdir(dirs[0], os.ModePerm)
 			if err != nil {
-				fmt.Println(err)
+				zap.L().Error(err.Error())
 				http.Error(w, err.Error(), http.StatusBadRequest)
 				return
 			}
@@ -96,12 +97,12 @@ func handleStdin(w http.ResponseWriter, r *http.Request) {
 
 	err = os.WriteFile(body.File+FILE_SUFFIX, []byte(body.Content), 0644)
 	if err != nil {
-		fmt.Println(err)
+		zap.L().Error(err.Error())
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	writeRes(w, http.StatusOK, "Saved to: " + body.File)
+	writeRes(w, http.StatusOK, "Saved to: "+body.File)
 }
 
 // handleDelete is called on `DELETE` to clean the directory or file.
@@ -115,32 +116,35 @@ func handleDelete(w http.ResponseWriter, r *http.Request) {
 	var body entities.CWFBody_t
 	err := json.NewDecoder(r.Body).Decode(&body)
 	if err != nil {
-		fmt.Println(err)
+		zap.L().Error(err.Error())
+		zap.L().Info(err.Error())
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	if strings.Contains(body.File, "..") {
+		zap.L().Warn("Client called .. path")
 		writeRes(w, http.StatusForbidden, "Not allowd!")
 		return
 	}
 
 	file := r.URL.Query().Get("file")
 	if file == "" {
+		zap.L().Warn("No file or path provided")
 		writeRes(w, http.StatusBadRequest, "No file name or path provided!")
 		return
 	}
 
 	err = os.Remove(file + FILE_SUFFIX)
 	if err != nil {
+		zap.L().Warn("File not found")
 		writeRes(w, http.StatusNotFound, "File not found!")
 		return
 	}
 
-	writeRes(w, http.StatusOK, "Deleted file: " + file)
+	writeRes(w, http.StatusOK, "Deleted file: "+file)
 }
 
-// TODO: Work in progress currently i just print on the server, we need to return to the client
 func handleList(w http.ResponseWriter, r *http.Request) {
 	// TODO: This has been now written 5 times we should use a wrapper for this call
 	// INFO: My implemenation = not really helpfull
@@ -152,19 +156,14 @@ func handleList(w http.ResponseWriter, r *http.Request) {
 	targetDir := r.URL.Query().Get("dir")
 
 	if strings.Contains(targetDir, "..") {
-		fmt.Println("------------------------")
-		fmt.Println("Client tried to call \"..\" Called by: " + r.RemoteAddr)
-		fmt.Println("------------------------")
+		zap.L().Warn("Client tried to call \"..\" Called by: " + r.RemoteAddr)
 		writeRes(w, http.StatusForbidden, "Not allowed!")
 		return
 	}
 
 	content, err := os.ReadDir("./" + targetDir)
 	if err != nil {
-		fmt.Println("------------------------")
-		fmt.Println(err)
-		fmt.Println("Called by: " + r.RemoteAddr)
-		fmt.Println("------------------------")
+		zap.L().Warn(err.Error() + "Called By: " + r.RemoteAddr)
 		writeRes(w, http.StatusNotFound, "No such directory!")
 		return
 	}
@@ -198,5 +197,6 @@ func writeRes(w http.ResponseWriter, statuscode int, content string) {
 
 // Check if endpoint is allowed for current action.
 func allowedEndpoint(filepath *url.URL, endpoint string) bool {
+	zap.L().Info("Called endpoint: " + filepath.Path + " Query: " + filepath.RawQuery)
 	return path.Base(filepath.Path) == endpoint
 }
