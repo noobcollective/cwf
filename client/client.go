@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"strings"
+	// "strings"
 	"os"
 
 	"cwf/entities"
@@ -28,23 +28,19 @@ func StartClient() {
 		return
 	}
 
-	flag := checkArgsFlags()
-	switch flag {
-		case "-l", "-lt":
-			listFiles(flag)
-		case "-d":
-			deleteFile()
-
-		// If no flags provided we want to print out content.
-		case "":
-		default:
-			getContent()
+	if getFlagValue("l") {
+		listFiles()
+	} else if getFlagValue("lt") {
+		// listTree()
+	} else if getFlagValue("d") {
+		deleteFile()
+	} else {
+		getContent()
 	}
 }
 
 // Send content to server to save it encoded in specified file.
 func sendContent() {
-	if !checkArgsFilename() { return }
 	content, err := io.ReadAll(os.Stdin)
 	if err != nil {
 		panic("Error reading content from StdIn")
@@ -69,7 +65,6 @@ func sendContent() {
 
 // Get content of clipboard file.
 func getContent() {
-	if !checkArgsFilename() { return }
 	res, err := http.Get("http://127.0.0.1:8787/cwf/get?file=" + os.Args[1])
 	if err != nil {
 		panic("Error getting content!")
@@ -90,8 +85,8 @@ func getContent() {
 }
 
 // Get a list from server.
-func listFiles(flag string) {
-	requestUrl := "http://127.0.0.1:8787/cwf/" + flagLookup[flag]
+func listFiles() {
+	requestUrl := "http://127.0.0.1:8787/cwf/list"
 
 	res, err := http.Get(requestUrl)
 	if err != nil {
@@ -103,9 +98,6 @@ func listFiles(flag string) {
 		fmt.Println(string(bodyEncoded))
 		return
 	}
-
-	// bodyDecoded, err := base64.StdEncoding.DecodeString(string(bodyEncoded))
-	// if err != nil { panic("Failed to decode body!") }
 
 	fmt.Println(string(bodyEncoded))
 }
@@ -124,7 +116,13 @@ func deleteFile() {
 	res, err := client.Do(req)
 	if err != nil { panic("Error sending request.") }
 
-	fmt.Println(res)
+	responseData, err := io.ReadAll(res.Body)
+	if res.StatusCode != http.StatusOK {
+		fmt.Println(string(responseData))
+		return
+	}
+
+	fmt.Println(string(responseData))
 }
 
 // Check if we are getting content from pipe.
@@ -133,21 +131,8 @@ func fromPipe() bool {
 	return content.Mode()&os.ModeCharDevice == 0
 }
 
-// Check arguments for filename -> panics if no filename is given via args.
-func checkArgsFilename() bool {
-	if !strings.Contains(os.Args[1], "-") && len(os.Args) >= 2 {
-		return true
-	}
 
-	fmt.Println("No filename given.")
-	return false
-}
-
-// Check if flags have been passed and return the passed flag.
-func checkArgsFlags() string {
-	if strings.Contains(os.Args[1], "-") && len(os.Args) >= 2 {
-		return os.Args[1]
-	}
-
-	return ""
+// Get value of a flag.
+func getFlagValue(flagName string) bool {
+	return flag.Lookup(flagName).Value.(flag.Getter).Get().(bool)
 }

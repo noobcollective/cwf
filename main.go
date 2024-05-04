@@ -12,7 +12,9 @@ import (
 )
 
 var asDaemon = flag.Bool("serve", false, "Start as daemon.")
-var list = flag.String("l", "", "List files.")
+var list = flag.Bool("l", false, "List files.")
+var listTree = flag.Bool("lt", false, "List files in tree.")
+var deletion = flag.Bool("d", false, "Delete file.")
 
 func init() {
 	zap.ReplaceGlobals(zap.Must(zap.NewProduction()))
