@@ -202,7 +202,6 @@ func errorHandler(w http.ResponseWriter, r *http.Request) {
 // Respond the go way.
 func writeRes(w http.ResponseWriter, statuscode int, content string) {
 	w.WriteHeader(statuscode)
-	// TODO: add \n at end of string
 	w.Write([]byte(content))
 }
 

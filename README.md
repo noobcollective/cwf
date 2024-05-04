@@ -1,11 +1,13 @@
 # cwf - copy with friends
 
 # Dependencies
-- Added Zap as logging library
+- Added Zap as logging library go.uber.org/zap 
+- Added yaml to parse our config file gopkg.in/yaml.v3 
 
 ## TODO:
 - [ ] prefix paths with cwf home (preferable in a config file) - defaults to `/tmp/cwf/`
 - [ ] more secure content (because base64 - wtf)
+
 - [ ] chown directories to specific users
 - [ ] safe error handling (e.g. handle error responses in client)
 
@@ -18,7 +20,7 @@
 - [x] list all files after date (more options for sorting?)
   - Currently only listing files in directory in modified order. NO additional sorting is supported
 - [ ] adding flag to setup port additionaly reading from config file setting dir/dirDepth/port
-
+  - Implemented with yaml (I thought yaml is toml and toml is yaml) so currently its working with a yaml file but i actually want a toml file
 ## Feature list - Client
 - [ ] copy into cwf
 - [ ] stdout of cwf
