@@ -145,6 +145,8 @@ func handleDelete(w http.ResponseWriter, r *http.Request) {
 	writeRes(w, http.StatusOK, "Deleted file: "+file)
 }
 
+// Function to return all files/directories in given query parameter
+// If no query parameter is provided we list files in root folder
 func handleList(w http.ResponseWriter, r *http.Request) {
 	// TODO: This has been now written 5 times we should use a wrapper for this call
 	// INFO: My implemenation = not really helpfull
