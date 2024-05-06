@@ -4,6 +4,7 @@ import (
 	"cwf/client"
 	"cwf/entities"
 	"cwf/server"
+	"fmt"
 	"flag"
 	"os"
 
@@ -18,6 +19,15 @@ var deletion = flag.Bool("d", false, "Delete file.")
 
 func init() {
 	zap.ReplaceGlobals(zap.Must(zap.NewProduction()))
+	flag.Parse()
+
+	// Deferred function to print error without stacktrace.
+	defer func() {
+        if r := recover(); r != nil {
+            fmt.Println(r)
+            os.Exit(1)
+        }
+    }()
 
 	// TODO: This should not be hardcoded i guess
 	config, err := os.ReadFile("./config/config.yaml")
@@ -40,10 +50,6 @@ func main() {
 	if len(os.Args) == 1 {
 		panic("Please use args or provide a filename")
 	}
-
-	//listFiles := flag.Bool("l", false, "List all clipboard filenames")
-	flag.Parse()
-	//fmt.Println(listFiles)
 
 	if *asDaemon {
 		server.StartServer()
