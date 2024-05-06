@@ -29,11 +29,14 @@ func init() {
         }
     }()
 
-	// TODO: This should not be hardcoded i guess
-	config, err := os.ReadFile("./config/config.yaml")
-
+	usrHome, err := os.UserHomeDir()
 	if err != nil {
-		panic("No config file found")
+		panic("Could not retrieve home directory!")
+	}
+
+	config, err := os.ReadFile(usrHome + "/.config/cwf/config.yaml")
+	if err != nil {
+		panic("No config file found!")
 	}
 
 	err = yaml.Unmarshal(config, &entities.MotherShip)
@@ -41,7 +44,7 @@ func init() {
 		panic("Config file could not be parsed")
 	}
 
-	if entities.MotherShip.MotherShipIP == "" || entities.MotherShip.MotherShipPort == "" || entities.MotherShip.MotherShipCWFDirectory == "" {
+	if entities.MotherShip.MotherShipIP == "" || entities.MotherShip.MotherShipPort == "" {
 		panic("IP address, Port or CWF File directory is not provided")
 	}
 }
