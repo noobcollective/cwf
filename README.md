@@ -1,6 +1,22 @@
 # cwf - copy with friends
 
-# Dependencies
+## Installation
+
+### MacOS
+```bash
+$ brew install iculturebud/tap/cwf
+```
+
+
+## Example config
+```yaml
+---
+ motherShipIP: "127.0.0.1"
+ motherShipPort: "8787"
+```
+
+
+## Dependencies
 - Added Zap as logging library go.uber.org/zap
 - Added yaml to parse our config file gopkg.in/yaml.v3
 
