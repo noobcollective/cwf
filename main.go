@@ -4,7 +4,6 @@ import (
 	"cwf/client"
 	"cwf/entities"
 	"cwf/server"
-	"cwf/tools"
 	"fmt"
 	"flag"
 	"os"
@@ -13,7 +12,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-var asDaemon = flag.Bool("serve", false, "Start CWF server.")
+var asDaemon = flag.Bool("serve", false, "Start as daemon.")
 var list = flag.Bool("l", false, "List files.")
 var listTree = flag.Bool("lt", false, "List files in tree.")
 var deletion = flag.Bool("d", false, "Delete file.")
@@ -31,22 +30,28 @@ func init() {
     }()
 
 	usrHome, err := os.UserHomeDir()
-	tools.ExitOnError(err, "Could not retrieve home directory!")
+	if err != nil {
+		panic("Could not retrieve home directory!")
+	}
 
 	config, err := os.ReadFile(usrHome + "/.config/cwf/config.yaml")
-	tools.ExitOnError(err, "No config file found!")
+	if err != nil {
+		panic("No config file found!")
+	}
 
 	err = yaml.Unmarshal(config, &entities.MotherShip)
-	tools.ExitOnError(err, "Config file could not be parsed!")
+	if err != nil {
+		panic("Config file could not be parsed")
+	}
 
 	if entities.MotherShip.MotherShipIP == "" || entities.MotherShip.MotherShipPort == "" {
-		tools.ExitWithMsg("IP adress or port not provided in config file.")
+		panic("IP address, Port or CWF File directory is not provided")
 	}
 }
 
 func main() {
 	if len(os.Args) == 1 {
-		tools.ExitWithMsg("Please use args or provide a filename!")
+		panic("Please use args or provide a filename")
 	}
 
 	if *asDaemon {
