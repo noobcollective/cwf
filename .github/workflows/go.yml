@@ -24,7 +24,5 @@ jobs:
           distribution: goreleaser
           version: latest
           args: release --rm-dist
-          archives:
-            - format: binary
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
