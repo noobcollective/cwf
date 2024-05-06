@@ -42,21 +42,22 @@ func StartClient() {
 func sendContent() {
 	content, err := io.ReadAll(os.Stdin)
 	if err != nil {
-		panic("Error reading content from StdIn")
+		fmt.Println("Error reading content from StdIn!")
+		return
 	}
 
 	encStr := base64.StdEncoding.EncodeToString(content)
 	body, err := json.Marshal(entities.CWFBody_t{File: os.Args[1], Content: encStr})
 	if err != nil {
-		panic("Error encoding data.")
+		fmt.Println("Error encoding data!")
+		return
 	}
 
 	res, err := http.Post(baseURL + "/copy",
 		"application/json", bytes.NewBuffer(body))
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println("Error sending request!")
 		return
-		// panic("Error sending request.")
 	}
 
 	responseData, err := io.ReadAll(res.Body)
@@ -72,7 +73,8 @@ func sendContent() {
 func getContent() {
 	res, err := http.Get(baseURL + "/get?file=" + os.Args[1])
 	if err != nil {
-		panic("Error getting content!")
+		fmt.Println("Error getting content!")
+		return
 	}
 
 	bodyEncoded, err := io.ReadAll(res.Body)
@@ -83,7 +85,8 @@ func getContent() {
 
 	bodyDecoded, err := base64.StdEncoding.DecodeString(string(bodyEncoded))
 	if err != nil {
-		panic("Failed to decode body!")
+		fmt.Println("Failed to decode body!")
+		return
 	}
 
 	fmt.Println(string(bodyDecoded))
@@ -98,7 +101,8 @@ func listFiles() {
 
 	res, err := http.Get(requestUrl)
 	if err != nil {
-		panic("Error sending request.")
+		fmt.Println("Error sending request!")
+		return
 	}
 
 	responseData, err := io.ReadAll(res.Body)
@@ -113,7 +117,7 @@ func listFiles() {
 // Delete a filename from server.
 func deleteFile() {
 	if len(os.Args) < 3 {
-		fmt.Println("No filename given to delete.")
+		fmt.Println("No filename given to delete!")
 		return
 	}
 
@@ -123,7 +127,8 @@ func deleteFile() {
 
 	res, err := client.Do(req)
 	if err != nil {
-		panic("Error sending request.")
+		fmt.Println("Error sending request!")
+		return
 	}
 
 	responseData, err := io.ReadAll(res.Body)
