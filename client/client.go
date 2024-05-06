@@ -11,8 +11,8 @@ import (
 	"net/http"
 	"os"
 
-	// "go.uber.org/zap"
 	"cwf/entities"
+	"cwf/tools"
 )
 
 var baseURL string
@@ -41,23 +41,15 @@ func StartClient() {
 // Send content to server to save it encoded in specified file.
 func sendContent() {
 	content, err := io.ReadAll(os.Stdin)
-	if err != nil {
-		panic("Error reading content from StdIn")
-	}
+	tools.ExitOnError(err, "Could not read content from StdIn!")
 
 	encStr := base64.StdEncoding.EncodeToString(content)
 	body, err := json.Marshal(entities.CWFBody_t{File: os.Args[1], Content: encStr})
-	if err != nil {
-		panic("Error encoding data.")
-	}
+	tools.ExitOnError(err, "Could not encode data!")
 
 	res, err := http.Post(baseURL + "/copy",
 		"application/json", bytes.NewBuffer(body))
-	if err != nil {
-		fmt.Println(err)
-		return
-		// panic("Error sending request.")
-	}
+	tools.ExitOnError(err, "Could not send request!")
 
 	responseData, err := io.ReadAll(res.Body)
 	if res.StatusCode != http.StatusOK {
@@ -71,9 +63,7 @@ func sendContent() {
 // Get content of clipboard file.
 func getContent() {
 	res, err := http.Get(baseURL + "/get?file=" + os.Args[1])
-	if err != nil {
-		panic("Error getting content!")
-	}
+	tools.ExitOnError(err, "Could not get content!")
 
 	bodyEncoded, err := io.ReadAll(res.Body)
 	if res.StatusCode != http.StatusOK {
@@ -82,9 +72,7 @@ func getContent() {
 	}
 
 	bodyDecoded, err := base64.StdEncoding.DecodeString(string(bodyEncoded))
-	if err != nil {
-		panic("Failed to decode body!")
-	}
+	tools.ExitOnError(err, "Could not decode body!")
 
 	fmt.Println(string(bodyDecoded))
 }
@@ -97,9 +85,7 @@ func listFiles() {
 	}
 
 	res, err := http.Get(requestUrl)
-	if err != nil {
-		panic("Error sending request.")
-	}
+	tools.ExitOnError(err, "Could not send request!")
 
 	responseData, err := io.ReadAll(res.Body)
 	if res.StatusCode != http.StatusOK {
@@ -120,11 +106,10 @@ func deleteFile() {
 	client := &http.Client{}
 	requestUrl := baseURL + "/delete?file=" + os.Args[2]
 	req, err := http.NewRequest("DELETE", requestUrl, nil)
+	tools.ExitOnError(err, "Could not create request!")
 
 	res, err := client.Do(req)
-	if err != nil {
-		panic("Error sending request.")
-	}
+	tools.ExitOnError(err, "Could not send request!")
 
 	responseData, err := io.ReadAll(res.Body)
 	if res.StatusCode != http.StatusOK {
