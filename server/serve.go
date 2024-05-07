@@ -32,11 +32,13 @@ func StartServer() {
 	http.HandleFunc("/", errorHandler)
 
 	// TODO: Make port either use global var or better via comline line or config file
-	log.Fatal(http.ListenAndServe(":" + entities.MotherShip.MotherShipPort, nil))
+	log.Fatal(http.ListenAndServe(":"+entities.MotherShip.MotherShipPort, nil))
 }
 
 // handleStdout is called on `GET` to return the saved content of a file.
 func handleStdout(w http.ResponseWriter, r *http.Request) {
+	zap.L().Info("Calling handleStdout")
+
 	if !allowedEndpoint(r.URL, "get") {
 		writeRes(w, http.StatusForbidden, "Invalid endpoint!")
 		return
@@ -44,12 +46,14 @@ func handleStdout(w http.ResponseWriter, r *http.Request) {
 
 	file := r.URL.Query().Get("file")
 	if file == "" {
+		zap.L().Info("No file name or path provided!")
 		writeRes(w, http.StatusBadRequest, "No file name or path provided!")
 		return
 	}
 
 	content, err := os.ReadFile(file + FILE_SUFFIX)
 	if err != nil {
+		zap.L().Info("File not found! Filename: " + file)
 		writeRes(w, http.StatusNotFound, "File not found!")
 		return
 	}
@@ -68,7 +72,7 @@ func handleStdin(w http.ResponseWriter, r *http.Request) {
 	var body entities.CWFBody_t
 	err := json.NewDecoder(r.Body).Decode(&body)
 	if err != nil {
-		zap.L().Error(err.Error())
+		zap.L().Error("Failed to decode request body! Error: " + err.Error())
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -78,6 +82,7 @@ func handleStdin(w http.ResponseWriter, r *http.Request) {
 	// body.File = ../test.cwf resolves to: `/tmp` -> not allowed (not in basedir)
 	// body.File = ../var/ resolves to: `/var` -> also not allowed (not in basedir)
 	if strings.Contains(body.File, "..") {
+		zap.L().Error("File provided contains \"..\"")
 		writeRes(w, http.StatusForbidden, "Not allowd!")
 		return
 	}
@@ -85,14 +90,14 @@ func handleStdin(w http.ResponseWriter, r *http.Request) {
 	if strings.Contains(body.File, "/") {
 		dirs := strings.Split(body.File, "/")
 		if len(dirs) > 2 {
-			writeRes(w, http.StatusForbidden, "Not allowd!")
+			writeRes(w, http.StatusForbidden, "Not allowd! Directory depth must not exceed 2 levels")
 			return
 		}
 
 		if _, err := os.Stat(dirs[0]); os.IsNotExist(err) {
 			err = os.Mkdir(dirs[0], os.ModePerm)
 			if err != nil {
-				zap.L().Error(err.Error())
+				zap.L().Error("Error while creating new directory: " + err.Error())
 				http.Error(w, err.Error(), http.StatusBadRequest)
 				return
 			}
@@ -101,7 +106,7 @@ func handleStdin(w http.ResponseWriter, r *http.Request) {
 
 	err = os.WriteFile(body.File+FILE_SUFFIX, []byte(body.Content), 0644)
 	if err != nil {
-		zap.L().Error(err.Error())
+		zap.L().Error("Error while creating/writing file! Error: " + err.Error())
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -167,6 +172,10 @@ func handleList(w http.ResponseWriter, r *http.Request) {
 
 	var response string
 	for _, e := range content {
+		if !e.IsDir() && !strings.HasSuffix(e.Name(), ".cwf") {
+			continue
+		}
+
 		modificationTime, _ := e.Info()
 		if e.Type().IsDir() {
 			response += "Dir: \t" + e.Name() + "\t\t Modified: " + modificationTime.ModTime().Format("2006-01-02 15:04:05") + "\n"

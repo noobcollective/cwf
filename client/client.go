@@ -1,4 +1,5 @@
 package client
+
 // Package for client. I'm too tired to think of a better explanation.
 
 import (
@@ -11,15 +12,10 @@ import (
 	"net/http"
 	"os"
 
-	// "go.uber.org/zap"
 	"cwf/entities"
 )
 
 var baseURL string
-var flagLookup = map[string]string{
-	"-l":  "list",
-	"-lt": "list-tree",
-}
 
 // Start client and handle action types.
 func StartClient() {
@@ -42,27 +38,31 @@ func StartClient() {
 func sendContent() {
 	content, err := io.ReadAll(os.Stdin)
 	if err != nil {
-		fmt.Println("Error reading content from StdIn!")
+		fmt.Fprintf(os.Stderr, "Error reading content from StdIn! Error <%v>\n", err)
 		return
 	}
 
 	encStr := base64.StdEncoding.EncodeToString(content)
 	body, err := json.Marshal(entities.CWFBody_t{File: os.Args[1], Content: encStr})
 	if err != nil {
-		fmt.Println("Error encoding data!")
+		fmt.Fprintf(os.Stderr, "Error encoding data! Error <%v>\n", err)
 		return
 	}
 
-	res, err := http.Post(baseURL + "/copy",
+	res, err := http.Post(baseURL+"/copy",
 		"application/json", bytes.NewBuffer(body))
 	if err != nil {
-		fmt.Println("Error sending request!")
+		fmt.Fprintf(os.Stderr, "Error sending request! Error <%v>\n", err)
 		return
 	}
 
 	responseData, err := io.ReadAll(res.Body)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error Reading response body! Error <%v>\n", err)
+	}
+
 	if res.StatusCode != http.StatusOK {
-		fmt.Println(string(responseData))
+		fmt.Fprintf(os.Stderr, "Unexpected Status code. Expected <OK> got <%v>\n", res.StatusCode)
 		return
 	}
 
@@ -73,19 +73,23 @@ func sendContent() {
 func getContent() {
 	res, err := http.Get(baseURL + "/get?file=" + os.Args[1])
 	if err != nil {
-		fmt.Println("Error getting content!")
+		fmt.Fprintf(os.Stderr, "Error getting content! Err <%v>\n", err)
 		return
 	}
 
 	bodyEncoded, err := io.ReadAll(res.Body)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error Reading response body! Error <%v>\n", err)
+	}
+
 	if res.StatusCode != http.StatusOK {
-		fmt.Println(string(bodyEncoded))
+		fmt.Fprintf(os.Stderr, "Unexpected Status code. Expected <OK> got <%v>\n", res.StatusCode)
 		return
 	}
 
 	bodyDecoded, err := base64.StdEncoding.DecodeString(string(bodyEncoded))
 	if err != nil {
-		fmt.Println("Failed to decode body!")
+		fmt.Fprintf(os.Stderr, "Failed to decode body! Error <%v>\n", err)
 		return
 	}
 
@@ -101,13 +105,17 @@ func listFiles() {
 
 	res, err := http.Get(requestUrl)
 	if err != nil {
-		fmt.Println("Error sending request!")
+		fmt.Fprintf(os.Stderr, "Error sending request! Error <%v>\n", err)
 		return
 	}
 
 	responseData, err := io.ReadAll(res.Body)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error Reading response body! Error <%v>\n", err)
+	}
+
 	if res.StatusCode != http.StatusOK {
-		fmt.Println(string(responseData))
+		fmt.Fprintf(os.Stderr, "Unexpected Status code. Expected <OK> got <%v>\n", res.StatusCode)
 		return
 	}
 
@@ -117,23 +125,30 @@ func listFiles() {
 // Delete a filename from server.
 func deleteFile() {
 	if len(os.Args) < 3 {
-		fmt.Println("No filename given to delete!")
+		fmt.Fprintf(os.Stderr, "No filename given to delete!\n")
 		return
 	}
 
 	client := &http.Client{}
 	requestUrl := baseURL + "/delete?file=" + os.Args[2]
 	req, err := http.NewRequest("DELETE", requestUrl, nil)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Creating a new request with method DELETE failed! Error <%v>\n", err)
+	}
 
 	res, err := client.Do(req)
 	if err != nil {
-		fmt.Println("Error sending request!")
+		fmt.Fprintf(os.Stderr, "Error sending request! Error <%v>\n", err)
 		return
 	}
 
 	responseData, err := io.ReadAll(res.Body)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error Reading response body! Error <%v>\n", err)
+	}
+
 	if res.StatusCode != http.StatusOK {
-		fmt.Println(string(responseData))
+		fmt.Fprintf(os.Stderr, "Unexpected Status code. Expected <OK> got <%v>\n", res.StatusCode)
 		return
 	}
 
