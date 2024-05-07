@@ -21,7 +21,7 @@ var deletion = flag.Bool("d", false, "Delete file.")
 
 func main() {
 	if len(os.Args) == 1 {
-		fmt.Fprintf(os.Stderr, "Please use args or provide a filename!")
+		fmt.Fprintf(os.Stderr, "Please use args or provide a filename!\n")
 		return
 	}
 
@@ -30,24 +30,24 @@ func main() {
 
 	userHome, err := os.UserHomeDir()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Could not retrieve home directory! Error <%v>", err)
+		fmt.Fprintf(os.Stderr, "Could not retrieve home directory! Error <%v>\n", err)
 		return
 	}
 
 	config, err := os.ReadFile(userHome + "/.config/cwf/config.yaml")
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "No config file found! Check README for config example! Error <%v>", err)
+		fmt.Fprintf(os.Stderr, "No config file found! Check README for config example! Error <%v>\n", err)
 		return
 	}
 
 	err = yaml.Unmarshal(config, &entities.MotherShip)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Config file could not be parsed! Error <%v>", err)
+		fmt.Fprintf(os.Stderr, "Config file could not be parsed! Error <%v>\n", err)
 		return
 	}
 
 	if (*asDaemon && entities.MotherShip.MotherShipPort == "") || (!*asDaemon && (entities.MotherShip.MotherShipIP == "" || entities.MotherShip.MotherShipPort == "")) {
-		fmt.Fprintf(os.Stderr, "IP address or Port is not provided")
+		fmt.Fprintf(os.Stderr, "IP address or Port is not provided\n")
 		return
 	}
 
