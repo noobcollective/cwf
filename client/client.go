@@ -6,28 +6,60 @@ import (
 	"bytes"
 	"encoding/base64"
 	"encoding/json"
-	"flag"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
 
 	"cwf/entities"
+	"cwf/utilities"
+
+	"gopkg.in/yaml.v3"
 )
 
 var baseURL string
 
+// Init client
+func initClient() bool {
+	usrHome, err := os.UserHomeDir()
+	if err != nil {
+		fmt.Println("Could not retrieve home directory!")
+		return false
+	}
+
+	config, err := os.ReadFile(usrHome + "/.config/cwf/config.yaml")
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "No config file found! Check README for config example! Error <%v>\n", err)
+		return false
+	}
+
+	err = yaml.Unmarshal(config, &entities.MotherShip)
+	if err != nil {
+		fmt.Println("Config file could not be parsed")
+		return false
+	}
+
+	if entities.MotherShip.MotherShipIP == "" || entities.MotherShip.MotherShipPort == "" {
+		fmt.Println("IP address, Port or CWF File directory is not provided")
+		return false
+	}
+
+	return true
+}
+
 // Start client and handle action types.
 func StartClient() {
+	if !initClient() {
+		return
+	}
+
 	baseURL = "http://" + entities.MotherShip.MotherShipIP + ":" + entities.MotherShip.MotherShipPort + "/cwf"
 
 	if fromPipe() {
 		sendContent()
-	} else if getFlagValue("l") {
+	} else if utilities.GetFlagValue[bool]("l") {
 		listFiles()
-	} else if getFlagValue("lt") {
-		// listTree()
-	} else if getFlagValue("d") {
+	} else if utilities.GetFlagValue[bool]("d") {
 		deleteFile()
 	} else {
 		getContent()
@@ -99,11 +131,20 @@ func getContent() {
 // Get a list from server.
 func listFiles() {
 	requestUrl := baseURL + "/list"
-	if len(os.Args) > 2 {
-		requestUrl += "?dir=" + os.Args[2]
+	req, err := http.NewRequest("GET", requestUrl, nil)
+	if err != nil {
+		// TODO add logging
+		return
 	}
 
-	res, err := http.Get(requestUrl)
+	q := req.URL.Query()
+	if len(os.Args) > 2 {
+		// TODO: DOMI CHECK THIS FOR CREATION OF QUERY PARAMETER. REMOVE TODO AFTER YOU SEE <3
+		q.Add("dir", os.Args[2])
+		req.URL.RawQuery = q.Encode()
+	}
+
+	res, err := http.Get(req.URL.String())
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error sending request! Error <%v>\n", err)
 		return
@@ -148,7 +189,7 @@ func deleteFile() {
 	}
 
 	if res.StatusCode != http.StatusOK {
-		fmt.Fprintf(os.Stderr, "Unexpected Status code. Expected <OK> got <%v>\n", res.StatusCode)
+		fmt.Fprintf(os.Stderr, string(responseData))
 		return
 	}
 
@@ -159,9 +200,4 @@ func deleteFile() {
 func fromPipe() bool {
 	content, _ := os.Stdin.Stat()
 	return content.Mode()&os.ModeCharDevice == 0
-}
-
-// Get value of a flag.
-func getFlagValue(flagName string) bool {
-	return flag.Lookup(flagName).Value.(flag.Getter).Get().(bool)
 }
