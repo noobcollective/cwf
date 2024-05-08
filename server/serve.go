@@ -156,8 +156,6 @@ func handleList(w http.ResponseWriter, r *http.Request) {
 	targetDir := r.URL.Query().Get("dir")
 	targetDir = filesDir + targetDir
 
-	fmt.Println(targetDir)
-
 	if strings.Contains(targetDir, "..") {
 		zap.L().Warn("Client tried to call \"..\" Called by: " + r.RemoteAddr)
 		writeRes(w, http.StatusForbidden, "Not allowed!")
