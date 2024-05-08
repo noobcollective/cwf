@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"fmt"
 	"os"
 	"path"
 	"sort"
@@ -18,10 +19,13 @@ import (
 )
 
 var FILE_SUFFIX string = ".cwf"
+var filesDir string
 
 // Start the server and setup needed endpoits.
-func StartServer() {
+func StartServer(port int, argFilesDir string) {
 	zap.L().Info("Welcome to CopyWithFriends -> cwf")
+	filesDir = argFilesDir
+
 	// Endpoints
 	http.HandleFunc("/cwf/get", handleStdout)
 	http.HandleFunc("/cwf/copy", handleStdin)
@@ -32,7 +36,7 @@ func StartServer() {
 	http.HandleFunc("/", errorHandler)
 
 	// TODO: Make port either use global var or better via comline line or config file
-	log.Fatal(http.ListenAndServe(":"+entities.MotherShip.MotherShipPort, nil))
+	log.Fatal(http.ListenAndServe(":" + fmt.Sprint(port), nil))
 }
 
 // handleStdout is called on `GET` to return the saved content of a file.
@@ -51,7 +55,7 @@ func handleStdout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	content, err := os.ReadFile(file + FILE_SUFFIX)
+	content, err := os.ReadFile(filesDir + file + FILE_SUFFIX)
 	if err != nil {
 		zap.L().Info("File not found! Filename: " + file)
 		writeRes(w, http.StatusNotFound, "File not found!")
@@ -94,8 +98,8 @@ func handleStdin(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		if _, err := os.Stat(dirs[0]); os.IsNotExist(err) {
-			err = os.Mkdir(dirs[0], os.ModePerm)
+		if _, err := os.Stat(filesDir + dirs[0]); os.IsNotExist(err) {
+			err = os.Mkdir(filesDir + dirs[0], os.ModePerm)
 			if err != nil {
 				zap.L().Error("Error while creating new directory: " + err.Error())
 				http.Error(w, err.Error(), http.StatusBadRequest)
@@ -104,14 +108,14 @@ func handleStdin(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	err = os.WriteFile(body.File+FILE_SUFFIX, []byte(body.Content), 0644)
+	err = os.WriteFile(filesDir + body.File + FILE_SUFFIX, []byte(body.Content), 0644)
 	if err != nil {
 		zap.L().Error("Error while creating/writing file! Error: " + err.Error())
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	writeRes(w, http.StatusOK, "Saved to: "+body.File)
+	writeRes(w, http.StatusOK, "Saved to: " + body.File)
 }
 
 // handleDelete is called on `DELETE` to clean the directory or file.
@@ -129,14 +133,14 @@ func handleDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := os.Remove(file + FILE_SUFFIX)
+	err := os.Remove(filesDir + file + FILE_SUFFIX)
 	if err != nil {
 		zap.L().Warn("File not found")
 		writeRes(w, http.StatusNotFound, "File not found!")
 		return
 	}
 
-	writeRes(w, http.StatusOK, "Deleted file: "+file)
+	writeRes(w, http.StatusOK, "Deleted file: " + file)
 }
 
 // Function to return all files/directories in given query parameter
@@ -150,6 +154,9 @@ func handleList(w http.ResponseWriter, r *http.Request) {
 	}
 
 	targetDir := r.URL.Query().Get("dir")
+	targetDir = filesDir + targetDir
+
+	fmt.Println(targetDir)
 
 	if strings.Contains(targetDir, "..") {
 		zap.L().Warn("Client tried to call \"..\" Called by: " + r.RemoteAddr)
@@ -157,7 +164,7 @@ func handleList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	content, err := os.ReadDir("./" + targetDir)
+	content, err := os.ReadDir(targetDir)
 	if err != nil {
 		zap.L().Warn(err.Error() + "Called By: " + r.RemoteAddr)
 		writeRes(w, http.StatusNotFound, "No such directory!")

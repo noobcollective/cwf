@@ -12,11 +12,14 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+// Server flags
 var asDaemon = flag.Bool("serve", false, "Start as daemon.")
+var filesDir = flag.String("filesdir", "/tmp/cwf/", "Directory to store cwf files.")
+var port = flag.Int("port", 8787, "Port to serve on.")
+// TODO: Set port and filesDir to shared variables (via config - but where?).
 
+// Client flags
 var list = flag.Bool("l", false, "List files.")
-
-// var listTree = flag.Bool("lt", false, "List files in tree.")
 var deletion = flag.Bool("d", false, "Delete file.")
 
 func main() {
@@ -28,34 +31,49 @@ func main() {
 	zap.ReplaceGlobals(zap.Must(zap.NewProduction()))
 	flag.Parse()
 
-	userHome, err := os.UserHomeDir()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Could not retrieve home directory! Error <%v>\n", err)
-		return
+	if !*asDaemon {
+		client.StartClient()
+	} else if initServer() {
+		server.StartServer(*port, *filesDir)
+		zap.L().Info("Serving")
+	}
+}
+
+func initServer() bool {
+	if _, err := os.Stat(*filesDir); os.IsNotExist(err) {
+		err := os.Mkdir(*filesDir, 0777)
+		if err != nil {
+			zap.L().Error(err.Error())
+			return false
+		}
 	}
 
-	config, err := os.ReadFile(userHome + "/.config/cwf/config.yaml")
+	return true
+}
+
+func initClient() bool {
+	usrHome, err := os.UserHomeDir()
+	if err != nil {
+		fmt.Println("Could not retrieve home directory!")
+		return false
+	}
+
+	config, err := os.ReadFile(usrHome + "/.config/cwf/config.yaml")
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "No config file found! Check README for config example! Error <%v>\n", err)
-		return
+		return false
 	}
 
 	err = yaml.Unmarshal(config, &entities.MotherShip)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Config file could not be parsed! Error <%v>\n", err)
-		return
+		fmt.Println("Config file could not be parsed")
+		return false
 	}
 
-	if (*asDaemon && entities.MotherShip.MotherShipPort == "") || (!*asDaemon && (entities.MotherShip.MotherShipIP == "" || entities.MotherShip.MotherShipPort == "")) {
-		fmt.Fprintf(os.Stderr, "IP address or Port is not provided\n")
-		return
+	if entities.MotherShip.MotherShipIP == "" || entities.MotherShip.MotherShipPort == "" {
+		fmt.Println("IP address, Port or CWF File directory is not provided")
+		return false
 	}
 
-	if *asDaemon {
-		server.StartServer()
-		zap.L().Info("Serving on Port: " + entities.MotherShip.MotherShipPort)
-		return
-	}
-
-	client.StartClient()
+	return true
 }
