@@ -44,7 +44,7 @@ func initClient() bool {
 		return false
 	}
 
-	baseURL = "http://" + entities.MotherShip.MotherShipIP + ":" + entities.MotherShip.MotherShipPort + "/cwf"
+	baseURL = "https://" + entities.MotherShip.MotherShipIP + ":" + entities.MotherShip.MotherShipPort + "/cwf"
 	return true
 }
 
