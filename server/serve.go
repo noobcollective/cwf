@@ -58,7 +58,7 @@ func StartServer() {
 	http.HandleFunc("/", handleNotFound)
 
 	zap.L().Info("Serving on PORT: " + strconv.Itoa(port))
-	log.Fatal(http.ListenAndServe(":" + fmt.Sprint(port), nil))
+	log.Fatal(http.ListenAndServe(":"+fmt.Sprint(port), nil))
 }
 
 // handleStdout is called on `GET` to return the saved content of a file.
@@ -246,6 +246,7 @@ func handleList(w http.ResponseWriter, r *http.Request) {
 	writeRes(w, http.StatusOK, response)
 }
 
+// Default handler for 404 pages
 func handleNotFound(w http.ResponseWriter, r *http.Request) {
 	zap.L().Warn("User called Endpoint " + r.URL.Path + " and is a bad boy")
 	writeRes(w, http.StatusNotFound, "YOU ARE A BAD BOY, ONLY USE cwf client for making requests\n")
@@ -265,6 +266,7 @@ func allowedEndpoint(filepath *url.URL, endpoint string) bool {
 	return path.Base(filepath.Path) == endpoint
 }
 
+// Check if filename is valid
 func isValidFilename(filename string) bool {
 	return !strings.ContainsAny(filename, "/\\\\:*?\\<>|..")
 }
