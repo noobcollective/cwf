@@ -58,7 +58,11 @@ func StartServer() {
 	http.HandleFunc("/", handleNotFound)
 
 	zap.L().Info("Serving on PORT: " + strconv.Itoa(port))
-	log.Fatal(http.ListenAndServe(":"+fmt.Sprint(port), nil))
+		if !utilities.GetFlagValue[bool]("https") {
+		log.Fatal(http.ListenAndServe(":" + fmt.Sprint(port), nil))
+	} else {
+		log.Fatal(http.ListenAndServeTLS(":" + fmt.Sprint(port), "certpath", "keypath", nil))
+	}
 }
 
 // handleStdout is called on `GET` to return the saved content of a file.

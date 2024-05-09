@@ -14,6 +14,7 @@ import (
 var asDaemon = flag.Bool("serve", false, "Start as daemon.")
 var filesDir = flag.String("filesdir", "/tmp/cwf/", "Directory to store cwf files.")
 var port = flag.Int("port", 8787, "Port to serve on.")
+var https = flag.Bool("https", false, "Serve with SSL/TLS.")
 
 // TODO: Set port and filesDir to shared variables (via config - but where?).
 
