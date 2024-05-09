@@ -166,6 +166,7 @@ func handleDelete(w http.ResponseWriter, r *http.Request) {
 	if !isValidFilename(target) {
 		zap.L().Warn("Client tried to call something bad Called by: " + r.RemoteAddr)
 		writeRes(w, http.StatusForbidden, "Not allowed!")
+		return
 	}
 
 	var err error
@@ -193,13 +194,13 @@ func handleList(w http.ResponseWriter, r *http.Request) {
 	}
 
 	targetDir := r.URL.Query().Get("dir")
-	targetDir = filesDir + targetDir
-
 	if !isValidFilename(targetDir) {
 		zap.L().Warn("Client tried to call something bad Called by: " + r.RemoteAddr)
 		writeRes(w, http.StatusForbidden, "Not allowed!")
+		return
 	}
 
+	targetDir = filesDir + targetDir
 	content, err := os.ReadDir(targetDir)
 	if err != nil {
 		zap.L().Warn(err.Error() + "Called By: " + r.RemoteAddr)
