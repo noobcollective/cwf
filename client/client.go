@@ -44,6 +44,7 @@ func initClient() bool {
 		return false
 	}
 
+	baseURL = "http://" + entities.MotherShip.MotherShipIP + ":" + entities.MotherShip.MotherShipPort + "/cwf"
 	return true
 }
 
@@ -52,8 +53,6 @@ func StartClient() {
 	if !initClient() {
 		return
 	}
-
-	baseURL = "http://" + entities.MotherShip.MotherShipIP + ":" + entities.MotherShip.MotherShipPort + "/cwf"
 
 	if fromPipe() {
 		sendContent()
@@ -91,10 +90,6 @@ func sendContent() {
 	responseData, err := io.ReadAll(res.Body)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error Reading response body! Error <%v>\n", err)
-	}
-
-	if res.StatusCode != http.StatusOK {
-		fmt.Fprintf(os.Stderr, "Unexpected Status code. Expected <OK> got <%v>\n", res.StatusCode)
 		return
 	}
 
@@ -112,10 +107,11 @@ func getContent() {
 	bodyEncoded, err := io.ReadAll(res.Body)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error Reading response body! Error <%v>\n", err)
+		return
 	}
 
 	if res.StatusCode != http.StatusOK {
-		fmt.Fprintf(os.Stderr, "Unexpected Status code. Expected <OK> got <%v>\n", res.StatusCode)
+		fmt.Println(string(bodyEncoded))
 		return
 	}
 
@@ -133,13 +129,12 @@ func listFiles() {
 	requestUrl := baseURL + "/list"
 	req, err := http.NewRequest("GET", requestUrl, nil)
 	if err != nil {
-		// TODO add logging
+		fmt.Fprintf(os.Stderr, "Failed to create new Request! Error <%v>\n", err)
 		return
 	}
 
 	q := req.URL.Query()
 	if len(os.Args) > 2 {
-		// TODO: DOMI CHECK THIS FOR CREATION OF QUERY PARAMETER. REMOVE TODO AFTER YOU SEE <3
 		q.Add("dir", os.Args[2])
 		req.URL.RawQuery = q.Encode()
 	}
@@ -153,10 +148,6 @@ func listFiles() {
 	responseData, err := io.ReadAll(res.Body)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error Reading response body! Error <%v>\n", err)
-	}
-
-	if res.StatusCode != http.StatusOK {
-		fmt.Fprintf(os.Stderr, "Unexpected Status code. Expected <OK> got <%v>\n", res.StatusCode)
 		return
 	}
 
@@ -171,11 +162,15 @@ func deleteFile() {
 	}
 
 	client := &http.Client{}
-	requestUrl := baseURL + "/delete?file=" + os.Args[2]
-	req, err := http.NewRequest("DELETE", requestUrl, nil)
+	req, err := http.NewRequest("DELETE", baseURL + "/delete", nil)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Creating a new request with method DELETE failed! Error <%v>\n", err)
+		return
 	}
+
+	q := req.URL.Query()
+	q.Add("path", os.Args[2])
+	req.URL.RawQuery = q.Encode()
 
 	res, err := client.Do(req)
 	if err != nil {
@@ -186,10 +181,6 @@ func deleteFile() {
 	responseData, err := io.ReadAll(res.Body)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error Reading response body! Error <%v>\n", err)
-	}
-
-	if res.StatusCode != http.StatusOK {
-		fmt.Fprintf(os.Stderr, string(responseData))
 		return
 	}
 
