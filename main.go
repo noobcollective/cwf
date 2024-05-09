@@ -23,7 +23,7 @@ var deletion = flag.Bool("d", false, "Delete file.")
 
 func main() {
 	if os.Geteuid() == 0 {
-		fmt.Fprintf(os.Stderr, "You know what you did!")
+		fmt.Fprintf(os.Stderr, "You know what you did!\n")
 		return
 	}
 
