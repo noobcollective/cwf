@@ -44,7 +44,12 @@ func initClient() bool {
 		return false
 	}
 
-	baseURL = "https://" + entities.MotherShip.MotherShipIP + ":" + entities.MotherShip.MotherShipPort + "/cwf"
+	var cwfProtocol string = "http://"
+	if entities.MotherShip.MotherShipSSL {
+		cwfProtocol = "https://"
+	}
+
+	baseURL = cwfProtocol + entities.MotherShip.MotherShipIP + ":" + entities.MotherShip.MotherShipPort + "/cwf"
 	return true
 }
 
