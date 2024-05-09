@@ -108,16 +108,23 @@ func handleStdin(w http.ResponseWriter, r *http.Request) {
 	// Example confiuration: /tmp/cwf/
 	// body.File = ../test.cwf resolves to: `/tmp` -> not allowed (not in basedir)
 	// body.File = ../var/ resolves to: `/var` -> also not allowed (not in basedir)
-	if strings.Contains(body.File, "..") {
-		zap.L().Error("File provided contains \"..\"")
-		writeRes(w, http.StatusForbidden, "Not allowd!")
-		return
-	}
 
 	if strings.Contains(body.File, "/") {
 		dirs := strings.Split(body.File, "/")
 		if len(dirs) > 2 {
 			writeRes(w, http.StatusForbidden, "Not allowd! Directory depth must not exceed 2 levels")
+			return
+		}
+
+		if !isValidFilename(dirs[0]) {
+			zap.L().Warn("Client tried to call something bad Called by: " + r.RemoteAddr)
+			writeRes(w, http.StatusForbidden, "Not allowed!")
+			return
+		}
+
+		if !isValidFilename(dirs[1]) {
+			zap.L().Warn("Client tried to call something bad Called by: " + r.RemoteAddr)
+			writeRes(w, http.StatusForbidden, "Not allowed!")
 			return
 		}
 
@@ -156,10 +163,9 @@ func handleDelete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// FIXME: We should definitely resolve paths and check if resolved path is in basedir.
-	if strings.Contains(target, "..") {
-		zap.L().Warn("Client tried to call \"..\" Called by: " + r.RemoteAddr)
+	if !isValidFilename(target) {
+		zap.L().Warn("Client tried to call something bad Called by: " + r.RemoteAddr)
 		writeRes(w, http.StatusForbidden, "Not allowed!")
-		return
 	}
 
 	var err error
@@ -189,11 +195,9 @@ func handleList(w http.ResponseWriter, r *http.Request) {
 	targetDir := r.URL.Query().Get("dir")
 	targetDir = filesDir + targetDir
 
-	// FIXME: We should definitely resolve paths and check if resolved path is in basedir.
-	if strings.Contains(targetDir, "..") {
-		zap.L().Warn("Client tried to call \"..\" Called by: " + r.RemoteAddr)
+	if !isValidFilename(targetDir) {
+		zap.L().Warn("Client tried to call something bad Called by: " + r.RemoteAddr)
 		writeRes(w, http.StatusForbidden, "Not allowed!")
-		return
 	}
 
 	content, err := os.ReadDir(targetDir)
@@ -258,4 +262,8 @@ func writeRes(w http.ResponseWriter, statuscode int, content string) {
 func allowedEndpoint(filepath *url.URL, endpoint string) bool {
 	zap.L().Info("Called endpoint: " + filepath.Path + " Query: " + filepath.RawQuery)
 	return path.Base(filepath.Path) == endpoint
+}
+
+func isValidFilename(filename string) bool {
+	return !strings.ContainsAny(filename, "/\\\\:*?\\<>|..")
 }
