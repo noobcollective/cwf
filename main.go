@@ -22,6 +22,11 @@ var list = flag.Bool("l", false, "List files.")
 var deletion = flag.Bool("d", false, "Delete file.")
 
 func main() {
+	if os.Geteuid() == 0 {
+		fmt.Fprintf(os.Stderr, "You know what you did!")
+		return
+	}
+
 	if len(os.Args) == 1 {
 		fmt.Fprintf(os.Stderr, "Please use args or provide a filename!\n")
 		return
