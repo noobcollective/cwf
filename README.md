@@ -19,35 +19,51 @@ $ brew install iculturebud/tap/cwf
 
 ## Usage
 ### Send content to server and save it in a single file.
-```echo "Hello Clipboard!" | cwf testfile```
+```
+echo "Hello Clipboard!" | cwf testfile
+```
 `Saved to: testfile`
 
 ### Get content of a saved file from server.
-```cwf testfile```
+```
+cwf testfile
+```
 `Hello Clipboard!`
 
 ### Send content to server and save file in a subdirectory.
-```echo "Hello Clipboard from subdirectory!" | cwf testdir/testfile```
+```
+echo "Hello Clipboard from subdirectory!" | cwf testdir/testfile
+```
 `Saved to: testdir/testfile`
 
 ### Get content of a saved file in a subdirectory from server.
-```cwf testdir/testerfile```
+```
+cwf testdir/testerfile
+```
 `Hello Clipboard from subdirectory!`
 
 ### Delete single file
-```cwf -d testerfile```
+```
+cwf -d testerfile
+```
 `Deleted file: testerfile`
 
 ### Delete single file in subdirectory
-```cwf -d testdir/testfile```
+```
+cwf -d testdir/testfile
+```
 `Deleted file: testfile`
 
 ### Delete all files in subdirectory
-```cwf -d testdir/```
+```
+cwf -d testdir/
+```
 `Deleted directory: testdir`
 
 ### List files and directories in configured base directory.
-```cwf -l```
+```
+cwf -l
+```
 ``` 
 Type    Name         Modified
 Dir    testdir      2006-01-02 15:04:05
@@ -55,7 +71,9 @@ File   testfile.cwf 2006-01-02 15:04:05
 ```
 
 ### List files and directories in a subdirectory.
-```cwf -l testdir```
+```
+cwf -l testdir
+```
 ```
 Type    Name         Modified
 File   testfile.cwf 2006-01-02 15:04:05
