@@ -4,7 +4,7 @@
 
 ### MacOS
 ```bash
-$ brew install iculturebud/tap/cwf
+brew install iculturebud/tap/cwf
 ```
 
 
