@@ -103,6 +103,7 @@ func handleStdin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// FIXME: We should definitely resolve paths and check if resolved path is in basedir.
 	// TODO: Resolve path and compare with configured basedir
 	// Example confiuration: /tmp/cwf/
 	// body.File = ../test.cwf resolves to: `/tmp` -> not allowed (not in basedir)
@@ -141,35 +142,45 @@ func handleStdin(w http.ResponseWriter, r *http.Request) {
 }
 
 // handleDelete is called on `DELETE` to clean the directory or file.
-// TODO: Dir support needs to be implemented.
 func handleDelete(w http.ResponseWriter, r *http.Request) {
 	if !allowedEndpoint(r.URL, "delete") {
 		writeRes(w, http.StatusForbidden, "Invalid endpoint!")
 		return
 	}
 
-	file := r.URL.Query().Get("file")
-	if file == "" {
+	target := r.URL.Query().Get("path")
+	if target == "" {
 		zap.L().Warn("No file or path provided")
 		writeRes(w, http.StatusBadRequest, "No file name or path provided!")
 		return
 	}
 
-	err := os.Remove(filesDir + file + FILE_SUFFIX)
-	if err != nil {
-		zap.L().Warn("File not found")
-		writeRes(w, http.StatusNotFound, "File not found!")
+	// FIXME: We should definitely resolve paths and check if resolved path is in basedir.
+	if strings.Contains(target, "..") {
+		zap.L().Warn("Client tried to call \"..\" Called by: " + r.RemoteAddr)
+		writeRes(w, http.StatusForbidden, "Not allowed!")
 		return
 	}
 
-	writeRes(w, http.StatusOK, "Deleted file: "+file)
+	var err error
+	if strings.HasSuffix(target, "/") {
+		err = os.Remove(filesDir + target)
+	} else {
+		err = os.Remove(filesDir + target + FILE_SUFFIX)
+	}
+
+	if err != nil {
+		zap.L().Warn("File not found")
+		writeRes(w, http.StatusNotFound, "File or directory not found!")
+		return
+	}
+
+	writeRes(w, http.StatusOK, "Deleted file: "+target)
 }
 
 // Function to return all files/directories in given query parameter
 // If no query parameter is provided we list files in root folder
 func handleList(w http.ResponseWriter, r *http.Request) {
-	// TODO: This has been now written 5 times we should use a wrapper for this call
-	// INFO: My implemenation = not really helpfull
 	if !allowedEndpoint(r.URL, "list") {
 		writeRes(w, http.StatusForbidden, "Invalid endpoint!")
 		return
@@ -178,6 +189,7 @@ func handleList(w http.ResponseWriter, r *http.Request) {
 	targetDir := r.URL.Query().Get("dir")
 	targetDir = filesDir + targetDir
 
+	// FIXME: We should definitely resolve paths and check if resolved path is in basedir.
 	if strings.Contains(targetDir, "..") {
 		zap.L().Warn("Client tried to call \"..\" Called by: " + r.RemoteAddr)
 		writeRes(w, http.StatusForbidden, "Not allowed!")
