@@ -238,6 +238,7 @@ func errorHandler(w http.ResponseWriter, r *http.Request) {
 
 // Respond the go way.
 func writeRes(w http.ResponseWriter, statuscode int, content string) {
+	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(statuscode)
 	w.Write([]byte(content))
 }
