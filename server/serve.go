@@ -55,9 +55,8 @@ func StartServer() {
 	http.HandleFunc("/cwf/list", handleList)
 
 	// Changing default errorHandler for unknown endpoints
-	http.HandleFunc("/", errorHandler)
+	http.HandleFunc("/", handleNotFound)
 
-	// TODO: Make port either use global var or better via comline line or config file
 	zap.L().Info("Serving on PORT: " + strconv.Itoa(port))
 	log.Fatal(http.ListenAndServe(":"+fmt.Sprint(port), nil))
 }
@@ -230,7 +229,7 @@ func handleList(w http.ResponseWriter, r *http.Request) {
 	writeRes(w, http.StatusOK, response)
 }
 
-func errorHandler(w http.ResponseWriter, r *http.Request) {
+func handleNotFound(w http.ResponseWriter, r *http.Request) {
 	zap.L().Warn("User called Endpoint " + r.URL.Path + " and is a bad boy")
 	writeRes(w, http.StatusNotFound, "YOU ARE A BAD BOY, ONLY USE cwf client for making requests\n")
 	// TODO: We should probabyl ban/block such ip addresses which try acces endpoints without the cwf client
