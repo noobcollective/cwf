@@ -47,7 +47,7 @@ $ brew install iculturebud/tap/cwf
 `Deleted directory: testdir`
 
 ### List files and directories in configured base directory.
-`cwf -l` \
+`cwf -l`
 ``` 
 Type    Name         Modified
 Dir    testdir      2006-01-02 15:04:05
@@ -55,7 +55,7 @@ File   testfile.cwf 2006-01-02 15:04:05
 ```
 
 ### List files and directories in a subdirectory.
-`cwf -l testdir` \
+`cwf -l testdir`
 ```
 Type    Name         Modified
 File   testfile.cwf 2006-01-02 15:04:05
