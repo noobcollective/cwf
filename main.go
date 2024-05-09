@@ -11,16 +11,22 @@ import (
 )
 
 // Server flags
-var asDaemon = flag.Bool("serve", false, "Start as daemon.")
-var filesDir = flag.String("filesdir", "/tmp/cwf/", "Directory to store cwf files.")
-var port = flag.Int("port", 8787, "Port to serve on.")
-var https = flag.Bool("https", false, "Serve with SSL/TLS.")
+var (
+	asDaemon    = flag.Bool("serve", false, "Start as daemon.")
+	filesDir    = flag.String("filesdir", "/tmp/cwf/", "Directory to store cwf files.")
+	port        = flag.Int("port", 8787, "Port to serve on.")
+	https       = flag.Bool("https", false, "Serve with SSL/TLS.")
+	showVersion = flag.Bool("version", false, "Prints the program version")
+	version     string
+)
 
 // TODO: Set port and filesDir to shared variables (via config - but where?).
 
 // Client flags
-var list = flag.Bool("l", false, "List files.")
-var deletion = flag.Bool("d", false, "Delete file.")
+var (
+	list     = flag.Bool("l", false, "List files.")
+	deletion = flag.Bool("d", false, "Delete file.")
+)
 
 func main() {
 	if os.Geteuid() == 0 {
@@ -35,6 +41,11 @@ func main() {
 
 	zap.ReplaceGlobals(zap.Must(zap.NewProduction()))
 	flag.Parse()
+
+	if *showVersion {
+		fmt.Println("CWF Version:", version)
+		return
+	}
 
 	if !*asDaemon {
 		client.StartClient()
