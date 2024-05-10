@@ -58,7 +58,7 @@ func StartServer() {
 	http.HandleFunc("/", handleNotFound)
 
 	zap.L().Info("Serving on PORT: " + strconv.Itoa(port))
-		if !utilities.GetFlagValue[bool]("https") {
+	if !utilities.GetFlagValue[bool]("https") {
 		log.Fatal(http.ListenAndServe(":" + fmt.Sprint(port), nil))
 	} else {
 		log.Fatal(http.ListenAndServeTLS(":" + fmt.Sprint(port), "certpath", "keypath", nil))
@@ -174,19 +174,22 @@ func handleDelete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var err error
+	var msg string
 	if strings.HasSuffix(target, "/") {
-		err = os.Remove(filesDir + target)
+		err = os.RemoveAll(filesDir + target)
+		msg = "Deleted directory: " + strings.TrimSuffix(target, "/")
 	} else {
 		err = os.Remove(filesDir + target + FILE_SUFFIX)
+		msg = "Deleted file: " + target
 	}
 
 	if err != nil {
-		zap.L().Warn("File not found")
+		zap.L().Error(err.Error())
 		writeRes(w, http.StatusNotFound, "File or directory not found!")
 		return
 	}
 
-	writeRes(w, http.StatusOK, "Deleted file: "+target)
+	writeRes(w, http.StatusOK, msg)
 }
 
 // Function to return all files/directories in given query parameter
@@ -272,5 +275,5 @@ func allowedEndpoint(filepath *url.URL, endpoint string) bool {
 
 // Check if filename is valid
 func isValidFilename(filename string) bool {
-	return !strings.ContainsAny(filename, "/\\\\:*?\\<>|..")
+	return !strings.ContainsAny(filename, "\\\\:*?\\<>|..")
 }
