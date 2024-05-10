@@ -120,13 +120,13 @@ func handleStdin(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		if !isValidFilename(dirs[0]) {
+		if !isValidPath(dirs[0]) {
 			zap.L().Warn("Client tried to call something bad Called by: " + r.RemoteAddr)
 			writeRes(w, http.StatusForbidden, "Not allowed!")
 			return
 		}
 
-		if !isValidFilename(dirs[1]) {
+		if !isValidPath(dirs[1]) {
 			zap.L().Warn("Client tried to call something bad Called by: " + r.RemoteAddr)
 			writeRes(w, http.StatusForbidden, "Not allowed!")
 			return
@@ -167,7 +167,7 @@ func handleDelete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// FIXME: We should definitely resolve paths and check if resolved path is in basedir.
-	if !isValidFilename(target) {
+	if !isValidPath(target) {
 		zap.L().Warn("Client tried to call something bad Called by: " + r.RemoteAddr)
 		writeRes(w, http.StatusForbidden, "Not allowed!")
 		return
@@ -201,7 +201,7 @@ func handleList(w http.ResponseWriter, r *http.Request) {
 	}
 
 	targetDir := r.URL.Query().Get("dir")
-	if !isValidFilename(targetDir) {
+	if !isValidPath(targetDir) {
 		zap.L().Warn("Client tried to call something bad Called by: " + r.RemoteAddr)
 		writeRes(w, http.StatusForbidden, "Not allowed!")
 		return
@@ -274,6 +274,6 @@ func allowedEndpoint(filepath *url.URL, endpoint string) bool {
 }
 
 // Check if filename is valid
-func isValidFilename(filename string) bool {
+func isValidPath(filename string) bool {
 	return !strings.ContainsAny(filename, "\\\\:*?\\<>|..")
 }
