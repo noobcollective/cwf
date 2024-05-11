@@ -27,7 +27,7 @@ func initClient() bool {
 		return false
 	}
 
-	config, err := os.ReadFile(usrHome + "/.config/cwf/config.yaml")
+	config, err := os.ReadFile(usrHome + "/.config/cwf/config.yml")
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "No config file found! Check README for config example! Error <%v>\n", err)
 		return false
@@ -49,7 +49,7 @@ func initClient() bool {
 		cwfProtocol = "https://"
 	}
 
-	baseURL = cwfProtocol + entities.MotherShip.MotherShipIP + ":" + entities.MotherShip.MotherShipPort + "/cwf"
+	baseURL = cwfProtocol + entities.MotherShip.MotherShipIP + ":" + entities.MotherShip.MotherShipPort + "/cwf/"
 	return true
 }
 
@@ -85,7 +85,7 @@ func sendContent() {
 		return
 	}
 
-	res, err := http.Post(baseURL + "/content/" + os.Args[1],
+	res, err := http.Post(baseURL + "content/" + os.Args[1],
 		"application/json", bytes.NewBuffer(body))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error sending request! Error <%v>\n", err)
@@ -103,7 +103,7 @@ func sendContent() {
 
 // Get content of clipboard file.
 func getContent() {
-	res, err := http.Get(baseURL + "/content/" + os.Args[1])
+	res, err := http.Get(baseURL + "content/" + os.Args[1])
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error getting content! Err <%v>\n", err)
 		return
@@ -131,7 +131,7 @@ func getContent() {
 
 // Get a list from server.
 func listFiles() {
-	reqUrl := baseURL + "/list/"
+	reqUrl := baseURL + "list/"
 	if len(os.Args) > 2 {
 		reqUrl += os.Args[2]
 	}
@@ -159,7 +159,7 @@ func deleteFile() {
 	}
 
 	client := &http.Client{}
-	req, err := http.NewRequest("DELETE", baseURL + "/delete/" + os.Args[2], nil)
+	req, err := http.NewRequest("DELETE", baseURL + "delete/" + os.Args[2], nil)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Creating a new request with method DELETE failed! Error <%v>\n", err)
 		return
