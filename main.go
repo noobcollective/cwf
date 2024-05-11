@@ -17,6 +17,8 @@ var (
 	port        = flag.Int("port", 8787, "Port to serve on.")
 	https       = flag.Bool("https", false, "Serve with SSL/TLS.")
 	showVersion = flag.Bool("version", false, "Prints the program version")
+	certPath    = flag.String("certpath", "", "Path where the SSL certificate is located.")
+	certKey     = flag.String("keypath", "", "Path where the SSL key is located.")
 	version     string
 )
 
