@@ -11,9 +11,10 @@ builds:
       - arm
       - arm64
 brews:
-  - repository:
+  - tap:
       owner: noobcollective
       name: homebrew-tap
+      token: "{{ .Env.TAP_GITHUB_TOKEN }}"
     directory: Formula
     homepage: https://github.com/noobcollective/cwf
     description: Copy and paste with friends remotely and easy
