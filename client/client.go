@@ -27,7 +27,7 @@ func initClient() bool {
 		return false
 	}
 
-	config, err := os.ReadFile(usrHome + "/.config/cwf/config.yml")
+	config, err := os.ReadFile(usrHome + "/.config/cwf/config.yaml")
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "No config file found! Check README for config example! Error <%v>\n", err)
 		return false
