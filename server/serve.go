@@ -47,63 +47,72 @@ func StartServer() {
 	}
 
 	zap.L().Info("Welcome to CopyWithFriends -> cwf")
+	mux := http.NewServeMux()
 
 	// Endpoints
-	http.HandleFunc("/cwf/get", handleStdout)
-	http.HandleFunc("/cwf/copy", handleStdin)
-	http.HandleFunc("/cwf/delete", handleDelete)
-	http.HandleFunc("/cwf/list", handleList)
+	mux.HandleFunc("GET /cwf/content/{pathname...}", handleGetContent)
+	mux.HandleFunc("POST /cwf/content/{pathname...}", handlePostContent)
+	mux.HandleFunc("DELETE /cwf/delete/{pathname...}", handleDelete)
+	mux.HandleFunc("GET /cwf/list/{pathname...}", handleList)
 
 	// Changing default errorHandler for unknown endpoints
-	http.HandleFunc("/", handleNotFound)
+	// INFO: I don't think we need this anymore.
+	// mux.HandleFunc("/", handleNotFound)
 
 	zap.L().Info("Serving on PORT: " + strconv.Itoa(port))
 	if !utilities.GetFlagValue[bool]("https") {
-		log.Fatal(http.ListenAndServe(":" + fmt.Sprint(port), nil))
+		log.Fatal(http.ListenAndServe(":" + fmt.Sprint(port), mux))
 	} else {
-		log.Fatal(http.ListenAndServeTLS(":" + fmt.Sprint(port), "certpath", "keypath", nil))
+		log.Fatal(http.ListenAndServeTLS(":" + fmt.Sprint(port), "certpath", "keypath", mux))
 	}
 }
 
 // handleStdout is called on `GET` to return the saved content of a file.
-func handleStdout(w http.ResponseWriter, r *http.Request) {
-	zap.L().Info("Calling handleStdout")
+func handleGetContent(writer http.ResponseWriter, req *http.Request) {
+	zap.L().Info("Calling handleGetContent")
 
-	if !allowedEndpoint(r.URL, "get") {
-		writeRes(w, http.StatusForbidden, "Invalid endpoint!")
+	if !allowedEndpoint(req.URL, "get") {
+		writeRes(writer, http.StatusForbidden, "Invalid endpoint!")
 		return
 	}
 
-	file := r.URL.Query().Get("file")
-	if file == "" {
+	pathname := req.PathValue("pathname")
+	if pathname == "" {
 		zap.L().Info("No file name or path provided!")
-		writeRes(w, http.StatusBadRequest, "No file name or path provided!")
+		writeRes(writer, http.StatusBadRequest, "No file name or path provided!")
 		return
 	}
 
-	content, err := os.ReadFile(filesDir + file + FILE_SUFFIX)
+	content, err := os.ReadFile(filesDir + pathname + FILE_SUFFIX)
 	if err != nil {
-		zap.L().Info("File not found! Filename: " + file)
-		writeRes(w, http.StatusNotFound, "File not found!")
+		zap.L().Info("File not found! Filename: " + pathname)
+		writeRes(writer, http.StatusNotFound, "File not found!")
 		return
 	}
 
-	w.Write(content)
+	writer.Write(content)
 }
 
 // handleStdin is called on `POST` to handle file saves.
 // It also is able to create a directory, if a full path is sent.
-func handleStdin(w http.ResponseWriter, r *http.Request) {
-	if !allowedEndpoint(r.URL, "copy") {
-		writeRes(w, http.StatusForbidden, "Invalid endpoint!")
+func handlePostContent(writer http.ResponseWriter, req *http.Request) {
+	if !allowedEndpoint(req.URL, "copy") {
+		writeRes(writer, http.StatusForbidden, "Invalid endpoint!")
+		return
+	}
+
+	pathname := req.PathValue("pathname")
+	if pathname == "" {
+		zap.L().Info("No file name or path provided!")
+		writeRes(writer, http.StatusBadRequest, "No file name or path provided!")
 		return
 	}
 
 	var body entities.CWFBody_t
-	err := json.NewDecoder(r.Body).Decode(&body)
+	err := json.NewDecoder(req.Body).Decode(&body)
 	if err != nil {
 		zap.L().Error("Failed to decode request body! Error: " + err.Error())
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(writer, err.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -112,64 +121,63 @@ func handleStdin(w http.ResponseWriter, r *http.Request) {
 	// Example confiuration: /tmp/cwf/
 	// body.File = ../test.cwf resolves to: `/tmp` -> not allowed (not in basedir)
 	// body.File = ../var/ resolves to: `/var` -> also not allowed (not in basedir)
-
-	if strings.Contains(body.File, "/") {
-		dirs := strings.Split(body.File, "/")
+	if strings.Contains(pathname, "/") {
+		dirs := strings.Split(pathname, "/")
 		if len(dirs) > 2 {
-			writeRes(w, http.StatusForbidden, "Not allowd! Directory depth must not exceed 2 levels")
+			writeRes(writer, http.StatusForbidden, "Not allowd! Directory depth must not exceed 2 levels")
 			return
 		}
 
 		if !isValidPath(dirs[0]) {
-			zap.L().Warn("Client tried to call something bad Called by: " + r.RemoteAddr)
-			writeRes(w, http.StatusForbidden, "Not allowed!")
+			zap.L().Warn("Client tried to call something bad Called by: " + req.RemoteAddr)
+			writeRes(writer, http.StatusForbidden, "Not allowed!")
 			return
 		}
 
 		if !isValidPath(dirs[1]) {
-			zap.L().Warn("Client tried to call something bad Called by: " + r.RemoteAddr)
-			writeRes(w, http.StatusForbidden, "Not allowed!")
+			zap.L().Warn("Client tried to call something bad Called by: " + req.RemoteAddr)
+			writeRes(writer, http.StatusForbidden, "Not allowed!")
 			return
 		}
 
 		if _, err := os.Stat(filesDir + dirs[0]); os.IsNotExist(err) {
-			err = os.Mkdir(filesDir+dirs[0], os.ModePerm)
+			err = os.Mkdir(filesDir + dirs[0], os.ModePerm)
 			if err != nil {
 				zap.L().Error("Error while creating new directory: " + err.Error())
-				http.Error(w, err.Error(), http.StatusBadRequest)
+				http.Error(writer, err.Error(), http.StatusBadRequest)
 				return
 			}
 		}
 	}
 
-	err = os.WriteFile(filesDir+body.File+FILE_SUFFIX, []byte(body.Content), 0644)
+	err = os.WriteFile(filesDir + pathname + FILE_SUFFIX, []byte(body.Content), 0644)
 	if err != nil {
 		zap.L().Error("Error while creating/writing file! Error: " + err.Error())
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(writer, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	writeRes(w, http.StatusOK, "Saved to: "+body.File)
+	writeRes(writer, http.StatusOK, "Saved to: " + pathname)
 }
 
 // handleDelete is called on `DELETE` to clean the directory or file.
-func handleDelete(w http.ResponseWriter, r *http.Request) {
-	if !allowedEndpoint(r.URL, "delete") {
-		writeRes(w, http.StatusForbidden, "Invalid endpoint!")
+func handleDelete(writer http.ResponseWriter, req *http.Request) {
+	if !allowedEndpoint(req.URL, "delete") {
+		writeRes(writer, http.StatusForbidden, "Invalid endpoint!")
 		return
 	}
 
-	target := r.URL.Query().Get("path")
+	target := req.PathValue("pathname")
 	if target == "" {
 		zap.L().Warn("No file or path provided")
-		writeRes(w, http.StatusBadRequest, "No file name or path provided!")
+		writeRes(writer, http.StatusBadRequest, "No file name or path provided!")
 		return
 	}
 
 	// FIXME: We should definitely resolve paths and check if resolved path is in basedir.
 	if !isValidPath(target) {
-		zap.L().Warn("Client tried to call something bad Called by: " + r.RemoteAddr)
-		writeRes(w, http.StatusForbidden, "Not allowed!")
+		zap.L().Warn("Client tried to call something bad Called by: " + req.RemoteAddr)
+		writeRes(writer, http.StatusForbidden, "Not allowed!")
 		return
 	}
 
@@ -185,33 +193,33 @@ func handleDelete(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		zap.L().Error(err.Error())
-		writeRes(w, http.StatusNotFound, "File or directory not found!")
+		writeRes(writer, http.StatusNotFound, "File or directory not found!")
 		return
 	}
 
-	writeRes(w, http.StatusOK, msg)
+	writeRes(writer, http.StatusOK, msg)
 }
 
 // Function to return all files/directories in given query parameter
 // If no query parameter is provided we list files in root folder
-func handleList(w http.ResponseWriter, r *http.Request) {
-	if !allowedEndpoint(r.URL, "list") {
-		writeRes(w, http.StatusForbidden, "Invalid endpoint!")
+func handleList(writer http.ResponseWriter, req *http.Request) {
+	if !allowedEndpoint(req.URL, "list") {
+		writeRes(writer, http.StatusForbidden, "Invalid endpoint!")
 		return
 	}
 
-	targetDir := r.URL.Query().Get("dir")
+	targetDir := req.PathValue("pathname")
 	if !isValidPath(targetDir) {
-		zap.L().Warn("Client tried to call something bad Called by: " + r.RemoteAddr)
-		writeRes(w, http.StatusForbidden, "Not allowed!")
+		zap.L().Warn("Client tried to call something bad Called by: " + req.RemoteAddr)
+		writeRes(writer, http.StatusForbidden, "Not allowed!")
 		return
 	}
 
 	targetDir = filesDir + targetDir
 	content, err := os.ReadDir(targetDir)
 	if err != nil {
-		zap.L().Warn(err.Error() + "Called By: " + r.RemoteAddr)
-		writeRes(w, http.StatusNotFound, "No such directory!")
+		zap.L().Warn(err.Error() + "Called By: " + req.RemoteAddr)
+		writeRes(writer, http.StatusNotFound, "No such directory!")
 		return
 	}
 
@@ -250,7 +258,7 @@ func handleList(w http.ResponseWriter, r *http.Request) {
 		response += fmt.Sprintf("%-7s%-*s%s\n", entryType, maxNameLen, e.Name(), modificationTime.ModTime().Format("2006-01-02 15:04:05"))
 	}
 
-	writeRes(w, http.StatusOK, response)
+	writeRes(writer, http.StatusOK, response)
 }
 
 // Default handler for 404 pages
@@ -277,3 +285,7 @@ func allowedEndpoint(filepath *url.URL, endpoint string) bool {
 func isValidPath(filename string) bool {
 	return !strings.ContainsAny(filename, "\\\\:*?\\<>|..")
 }
+
+// Check if filename is valid
+// func isValidPath(filename string) bool {
+// }
