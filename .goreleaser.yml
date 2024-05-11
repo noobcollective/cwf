@@ -1,16 +1,10 @@
 builds:
 - env: [CGO_ENABLED=0]
-  goos:
-  - linux
-  goarch:
-  - amd64
-
+  goos: linux
+  goarch: amd64
 dockers:
-    id: cwf
-
-    ids:
-      - cwf
-
-    image_templates:
-      - "iculture/cwf:latest"
-      - "iculture/cwf:{{ .Tag }}"
+  - id: cwf
+  - ids: cwf
+  - image_templates:
+    - "iculture/cwf:latest"
+    - "iculture/cwf:{{ .Tag }}"
