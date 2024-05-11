@@ -7,9 +7,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"net/url"
 	"os"
-	"path"
 	"sort"
 	"strconv"
 	"strings"
@@ -40,26 +38,19 @@ func initServer() bool {
 	return true
 }
 
-// Start the server and setup needed endpoits.
+// Start the server and setup needed endpoints.
 func StartServer() {
-	if !initServer() {
-		return
-	}
+	if !initServer() { return }
+	zap.L().Info("Welcome to CopyWithFriends on your Server!")
 
-	zap.L().Info("Welcome to CopyWithFriends -> cwf")
 	mux := http.NewServeMux()
-
-	// Endpoints
 	mux.HandleFunc("GET /cwf/content/{pathname...}", handleGetContent)
 	mux.HandleFunc("POST /cwf/content/{pathname...}", handlePostContent)
-	mux.HandleFunc("DELETE /cwf/delete/{pathname...}", handleDelete)
-	mux.HandleFunc("GET /cwf/list/{pathname...}", handleList)
+	mux.HandleFunc("DELETE /cwf/content/{pathname...}", handleDeleteContent)
+	mux.HandleFunc("GET /cwf/list/{pathname...}", handleListContent)
+	mux.HandleFunc("/", handleNotFound)
 
-	// Changing default errorHandler for unknown endpoints
-	// INFO: I don't think we need this anymore.
-	// mux.HandleFunc("/", handleNotFound)
-
-	zap.L().Info("Serving on PORT: " + strconv.Itoa(port))
+	zap.L().Info("Serving on Port: " + strconv.Itoa(port))
 	if !utilities.GetFlagValue[bool]("https") {
 		log.Fatal(http.ListenAndServe(":" + fmt.Sprint(port), mux))
 	} else {
@@ -69,12 +60,7 @@ func StartServer() {
 
 // handleStdout is called on `GET` to return the saved content of a file.
 func handleGetContent(writer http.ResponseWriter, req *http.Request) {
-	zap.L().Info("Calling handleGetContent")
-
-	if !allowedEndpoint(req.URL, "get") {
-		writeRes(writer, http.StatusForbidden, "Invalid endpoint!")
-		return
-	}
+	zap.L().Info("Got GET on /content/")
 
 	pathname := req.PathValue("pathname")
 	if pathname == "" {
@@ -93,13 +79,10 @@ func handleGetContent(writer http.ResponseWriter, req *http.Request) {
 	writer.Write(content)
 }
 
-// handleStdin is called on `POST` to handle file saves.
+// handlePostContent is called on `POST` to handle file saves.
 // It also is able to create a directory, if a full path is sent.
 func handlePostContent(writer http.ResponseWriter, req *http.Request) {
-	if !allowedEndpoint(req.URL, "copy") {
-		writeRes(writer, http.StatusForbidden, "Invalid endpoint!")
-		return
-	}
+	zap.L().Info("Got POST on /content/")
 
 	pathname := req.PathValue("pathname")
 	if pathname == "" {
@@ -116,27 +99,10 @@ func handlePostContent(writer http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	// FIXME: We should definitely resolve paths and check if resolved path is in basedir.
-	// TODO: Resolve path and compare with configured basedir
-	// Example confiuration: /tmp/cwf/
-	// body.File = ../test.cwf resolves to: `/tmp` -> not allowed (not in basedir)
-	// body.File = ../var/ resolves to: `/var` -> also not allowed (not in basedir)
 	if strings.Contains(pathname, "/") {
 		dirs := strings.Split(pathname, "/")
 		if len(dirs) > 2 {
-			writeRes(writer, http.StatusForbidden, "Not allowd! Directory depth must not exceed 2 levels")
-			return
-		}
-
-		if !isValidPath(dirs[0]) {
-			zap.L().Warn("Client tried to call something bad Called by: " + req.RemoteAddr)
-			writeRes(writer, http.StatusForbidden, "Not allowed!")
-			return
-		}
-
-		if !isValidPath(dirs[1]) {
-			zap.L().Warn("Client tried to call something bad Called by: " + req.RemoteAddr)
-			writeRes(writer, http.StatusForbidden, "Not allowed!")
+			writeRes(writer, http.StatusBadRequest, "Directory depth must not exceed 2 levels")
 			return
 		}
 
@@ -161,23 +127,13 @@ func handlePostContent(writer http.ResponseWriter, req *http.Request) {
 }
 
 // handleDelete is called on `DELETE` to clean the directory or file.
-func handleDelete(writer http.ResponseWriter, req *http.Request) {
-	if !allowedEndpoint(req.URL, "delete") {
-		writeRes(writer, http.StatusForbidden, "Invalid endpoint!")
-		return
-	}
+func handleDeleteContent(writer http.ResponseWriter, req *http.Request) {
+	zap.L().Info("Got DELETE on /content/")
 
 	target := req.PathValue("pathname")
 	if target == "" {
 		zap.L().Warn("No file or path provided")
 		writeRes(writer, http.StatusBadRequest, "No file name or path provided!")
-		return
-	}
-
-	// FIXME: We should definitely resolve paths and check if resolved path is in basedir.
-	if !isValidPath(target) {
-		zap.L().Warn("Client tried to call something bad Called by: " + req.RemoteAddr)
-		writeRes(writer, http.StatusForbidden, "Not allowed!")
 		return
 	}
 
@@ -201,21 +157,13 @@ func handleDelete(writer http.ResponseWriter, req *http.Request) {
 }
 
 // Function to return all files/directories in given query parameter
-// If no query parameter is provided we list files in root folder
-func handleList(writer http.ResponseWriter, req *http.Request) {
-	if !allowedEndpoint(req.URL, "list") {
-		writeRes(writer, http.StatusForbidden, "Invalid endpoint!")
-		return
-	}
+// If no further pathname is provided we list files in root folder
+func handleListContent(writer http.ResponseWriter, req *http.Request) {
+	zap.L().Info("Got GET on /list/")
 
 	targetDir := req.PathValue("pathname")
-	if !isValidPath(targetDir) {
-		zap.L().Warn("Client tried to call something bad Called by: " + req.RemoteAddr)
-		writeRes(writer, http.StatusForbidden, "Not allowed!")
-		return
-	}
-
 	targetDir = filesDir + targetDir
+
 	content, err := os.ReadDir(targetDir)
 	if err != nil {
 		zap.L().Warn(err.Error() + "Called By: " + req.RemoteAddr)
@@ -262,30 +210,15 @@ func handleList(writer http.ResponseWriter, req *http.Request) {
 }
 
 // Default handler for 404 pages
-func handleNotFound(w http.ResponseWriter, r *http.Request) {
-	zap.L().Warn("User called Endpoint " + r.URL.Path + " and is a bad boy")
-	writeRes(w, http.StatusNotFound, "YOU ARE A BAD BOY, ONLY USE cwf client for making requests\n")
+func handleNotFound(writer http.ResponseWriter, req *http.Request) {
+	zap.L().Warn("User called Endpoint: '" + req.URL.String() + "'!")
+	writeRes(writer, http.StatusMethodNotAllowed, "YOU ARE A BAD BOY, ONLY USE cwf client for making requests")
 	// TODO: We should probabyl ban/block such ip addresses which try acces endpoints without the cwf client
 }
 
 // Respond the go way.
-func writeRes(w http.ResponseWriter, statuscode int, content string) {
-	w.Header().Set("Content-Type", "text/plain")
-	w.WriteHeader(statuscode)
-	w.Write([]byte(content))
+func writeRes(writer http.ResponseWriter, statuscode int, content string) {
+	writer.Header().Set("Content-Type", "text/plain")
+	writer.WriteHeader(statuscode)
+	writer.Write([]byte(content))
 }
-
-// Check if endpoint is allowed for current action.
-func allowedEndpoint(filepath *url.URL, endpoint string) bool {
-	zap.L().Info("Called endpoint: " + filepath.Path + " Query: " + filepath.RawQuery)
-	return path.Base(filepath.Path) == endpoint
-}
-
-// Check if filename is valid
-func isValidPath(filename string) bool {
-	return !strings.ContainsAny(filename, "\\\\:*?\\<>|..")
-}
-
-// Check if filename is valid
-// func isValidPath(filename string) bool {
-// }
