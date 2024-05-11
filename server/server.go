@@ -28,7 +28,7 @@ func initServer() bool {
 	port = utilities.GetFlagValue[int]("port")
 
 	if _, err := os.Stat(filesDir); os.IsNotExist(err) {
-		err := os.Mkdir(filesDir, 0777)
+		err := os.MkdirAll(filesDir, 0777)
 		if err != nil {
 			zap.L().Error(err.Error())
 			return false
