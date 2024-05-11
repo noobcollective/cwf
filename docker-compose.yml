@@ -1,0 +1,13 @@
+services:
+  cwf:
+    restart: always
+    image: noobcollective/cwf
+    ports:
+    - 8787:8787
+    environment:
+      HOST: 0.0.0.0
+      PORT: 8787
+      STORAGE_BACKEND: file
+      STORAGE_PATH: /data
+    volumes:
+    - ./data:/data
