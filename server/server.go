@@ -36,7 +36,7 @@ func initServer() bool {
 	}
 
 	if utilities.GetFlagValue[bool]("https") &&
-	(utilities.GetFlagValue[string]("certpath") == "" || utilities.GetFlagValue[string]("keypath") == "") {
+		(utilities.GetFlagValue[string]("certpath") == "" || utilities.GetFlagValue[string]("keypath") == "") {
 		zap.L().Error("Can't serve with SSL enabled without certificate and key!")
 		return false
 	}
@@ -46,8 +46,12 @@ func initServer() bool {
 
 // Start the server and setup needed endpoints.
 func StartServer() {
-	if !initServer() { return }
+	if !initServer() {
+		return
+	}
+
 	zap.L().Info("Welcome to CopyWithFriends on your Server!")
+
 	certPath := utilities.GetFlagValue[string]("certpath")
 	keyPath := utilities.GetFlagValue[string]("keypath")
 
@@ -60,9 +64,9 @@ func StartServer() {
 
 	zap.L().Info("Serving on Port: " + strconv.Itoa(port))
 	if !utilities.GetFlagValue[bool]("https") {
-		log.Fatal(http.ListenAndServe(":" + fmt.Sprint(port), mux))
+		log.Fatal(http.ListenAndServe(":"+fmt.Sprint(port), mux))
 	} else {
-		log.Fatal(http.ListenAndServeTLS(":" + fmt.Sprint(port), certPath, keyPath, mux))
+		log.Fatal(http.ListenAndServeTLS(":"+fmt.Sprint(port), certPath, keyPath, mux))
 	}
 }
 
@@ -115,7 +119,7 @@ func handlePostContent(writer http.ResponseWriter, req *http.Request) {
 		}
 
 		if _, err := os.Stat(filesDir + dirs[0]); os.IsNotExist(err) {
-			err = os.Mkdir(filesDir + dirs[0], os.ModePerm)
+			err = os.Mkdir(filesDir+dirs[0], os.ModePerm)
 			if err != nil {
 				zap.L().Error("Error while creating new directory: " + err.Error())
 				http.Error(writer, err.Error(), http.StatusBadRequest)
@@ -124,14 +128,14 @@ func handlePostContent(writer http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	err = os.WriteFile(filesDir + pathname + FILE_SUFFIX, []byte(body.Content), 0644)
+	err = os.WriteFile(filesDir+pathname+FILE_SUFFIX, []byte(body.Content), 0644)
 	if err != nil {
 		zap.L().Error("Error while creating/writing file! Error: " + err.Error())
 		http.Error(writer, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	writeRes(writer, http.StatusOK, "Saved to: " + pathname)
+	writeRes(writer, http.StatusOK, "Saved to: "+pathname)
 }
 
 // handleDelete is called on `DELETE` to clean the directory or file.
