@@ -79,13 +79,13 @@ func sendContent() {
 	}
 
 	encStr := base64.StdEncoding.EncodeToString(content)
-	body, err := json.Marshal(entities.CWFBody_t{File: os.Args[1], Content: encStr})
+	body, err := json.Marshal(entities.CWFBody_t{Content: encStr})
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error encoding data! Error <%v>\n", err)
 		return
 	}
 
-	res, err := http.Post(baseURL+"/copy",
+	res, err := http.Post(baseURL + "/content/" + os.Args[1],
 		"application/json", bytes.NewBuffer(body))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error sending request! Error <%v>\n", err)
@@ -103,7 +103,7 @@ func sendContent() {
 
 // Get content of clipboard file.
 func getContent() {
-	res, err := http.Get(baseURL + "/get?file=" + os.Args[1])
+	res, err := http.Get(baseURL + "/content/" + os.Args[1])
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error getting content! Err <%v>\n", err)
 		return
@@ -131,20 +131,12 @@ func getContent() {
 
 // Get a list from server.
 func listFiles() {
-	requestUrl := baseURL + "/list"
-	req, err := http.NewRequest("GET", requestUrl, nil)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to create new Request! Error <%v>\n", err)
-		return
-	}
-
-	q := req.URL.Query()
+	reqUrl := baseURL + "/list/"
 	if len(os.Args) > 2 {
-		q.Add("dir", os.Args[2])
-		req.URL.RawQuery = q.Encode()
+		reqUrl += os.Args[2]
 	}
 
-	res, err := http.Get(req.URL.String())
+	res, err := http.Get(reqUrl)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error sending request! Error <%v>\n", err)
 		return
@@ -167,15 +159,11 @@ func deleteFile() {
 	}
 
 	client := &http.Client{}
-	req, err := http.NewRequest("DELETE", baseURL + "/delete", nil)
+	req, err := http.NewRequest("DELETE", baseURL + "/delete/" + os.Args[2], nil)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Creating a new request with method DELETE failed! Error <%v>\n", err)
 		return
 	}
-
-	q := req.URL.Query()
-	q.Add("path", os.Args[2])
-	req.URL.RawQuery = q.Encode()
 
 	res, err := client.Do(req)
 	if err != nil {
