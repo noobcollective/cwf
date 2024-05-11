@@ -99,7 +99,7 @@ File   testfile.cwf 2006-01-02 15:04:05
         --name cwf-server \
         -p <host_port>:<container_port> \
         -v <volume_name>:<container_filesDir> \
-        -v /etc/crypts:<host_ssl_certs_dir> \
+        -v <container_ssl_certs_dir>:<host_ssl_certs_dir> \
         -d noobcollective/cwf -serve -https -certfile <path_to_ssl_cert> -keyfile <path_to_ssl_key>
     ```
 - `<container_port>`: Configurable via `-port` argument in cwf -> defaults to 8787
