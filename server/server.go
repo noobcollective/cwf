@@ -36,7 +36,7 @@ func initServer() bool {
 	}
 
 	if utilities.GetFlagValue[bool]("https") &&
-		(utilities.GetFlagValue[string]("certpath") == "" || utilities.GetFlagValue[string]("keypath") == "") {
+		(utilities.GetFlagValue[string]("certfile") == "" || utilities.GetFlagValue[string]("keyfile") == "") {
 		zap.L().Error("Can't serve with SSL enabled without certificate and key!")
 		return false
 	}
@@ -52,8 +52,9 @@ func StartServer() {
 
 	zap.L().Info("Welcome to CopyWithFriends on your Server!")
 
-	certPath := utilities.GetFlagValue[string]("certpath")
-	keyPath := utilities.GetFlagValue[string]("keypath")
+	certsDir := utilities.GetFlagValue[string]("certsdir")
+	certPath := certsDir + utilities.GetFlagValue[string]("certfile")
+	keyPath := certsDir + utilities.GetFlagValue[string]("keyfile")
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /cwf/content/{pathname...}", handleGetContent)
@@ -64,9 +65,9 @@ func StartServer() {
 
 	zap.L().Info("Serving on Port: " + strconv.Itoa(port))
 	if !utilities.GetFlagValue[bool]("https") {
-		log.Fatal(http.ListenAndServe(":"+fmt.Sprint(port), mux))
+		log.Fatal(http.ListenAndServe(":" + fmt.Sprint(port), mux))
 	} else {
-		log.Fatal(http.ListenAndServeTLS(":"+fmt.Sprint(port), certPath, keyPath, mux))
+		log.Fatal(http.ListenAndServeTLS(":" + fmt.Sprint(port), certPath, keyPath, mux))
 	}
 }
 

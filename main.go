@@ -17,8 +17,9 @@ var (
 	port        = flag.Int("port", 8787, "Port to serve on.")
 	https       = flag.Bool("https", false, "Serve with SSL/TLS.")
 	showVersion = flag.Bool("version", false, "Prints the program version")
-	certPath    = flag.String("certpath", "", "Path where the SSL certificate is located.")
-	certKey     = flag.String("keypath", "", "Path where the SSL key is located.")
+	certsDir    = flag.String("certsdir", "/etc/crypts/", "Path where the SSL certificate and key are located.")
+	certFile    = flag.String("certfile", "", "Filename of the SSL certificate.")
+	keyFile     = flag.String("keyfile", "", "Filename of the SSL key.")
 	version     string
 )
 
