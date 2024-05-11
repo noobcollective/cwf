@@ -159,7 +159,7 @@ func deleteFile() {
 	}
 
 	client := &http.Client{}
-	req, err := http.NewRequest("DELETE", baseURL + "delete/" + os.Args[2], nil)
+	req, err := http.NewRequest("DELETE", baseURL + "content/" + os.Args[2], nil)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Creating a new request with method DELETE failed! Error <%v>\n", err)
 		return
