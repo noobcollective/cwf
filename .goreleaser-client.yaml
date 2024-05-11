@@ -11,7 +11,7 @@ builds:
       - arm
       - arm64
 brews:
-  - tap:
+  - repository:
       owner: noobcollective
       name: homebrew-tap
       token: "{{ .Env.TAP_GITHUB_TOKEN }}"
