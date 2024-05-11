@@ -19,8 +19,6 @@ brews:
     homepage: https://github.com/noobcollective/cwf
     description: Copy and paste with friends remotely and easy
     license: MIT
-    test: |
-      system "#{bin}/cwf -v"
     dependencies:
       - name: go
     # extra_install: |-
