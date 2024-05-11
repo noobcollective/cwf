@@ -2,9 +2,7 @@ name: Create Client Release
 permissions:
   contents: write
 on:
-  push:
-    tags:
-      - 'v*'
+  workflow_dispatch:
 
 jobs:
   release-client:
