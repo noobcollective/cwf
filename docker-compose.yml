@@ -1,8 +1,0 @@
-services:
-  cwf:
-    restart: always
-    image: noobcollective/cwf
-    ports:
-    - 8787:8787
-    volumes:
-    - cwf:/tmp/cwf

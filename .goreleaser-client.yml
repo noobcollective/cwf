@@ -1,0 +1,29 @@
+builds:
+  - env:
+    - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - "386"
+      - amd64
+      - arm
+      - arm64
+brews:
+  - repository:
+      owner: noobcollective
+      name: homebrew-tap
+    directory: Formula
+    homepage: https://github.com/noobcollective/cwf
+    description: Copy and paste with friends remotely and easy
+    license: MIT
+    test: |
+      system "#{bin}/cwf -v"
+    dependencies:
+      - name: go
+    # extra_install: |-
+    #   bash_completion.install "completions/goreleaser.bash" => "goreleaser"
+    #   zsh_completion.install "completions/goreleaser.zsh" => "_goreleaser"
+    #   fish_completion.install "completions/goreleaser.fish"
+    #   man1.install "manpages/goreleaser.1.gz"

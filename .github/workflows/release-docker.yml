@@ -1,13 +1,11 @@
-name: Create Release & Docker
+name: Create Docker Release
 permissions:
   contents: write
 on:
-  push:
-    tags:
-      - 'v*'
+  workflow_dispatch:
 
 jobs:
-  goreleaser:
+  release-docker:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -37,6 +35,6 @@ jobs:
         with:
           distribution: goreleaser
           version: latest
-          args: release --clean
+          args: release --clean -f .goreleaser-docker.yaml 
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

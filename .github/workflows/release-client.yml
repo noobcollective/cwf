@@ -1,0 +1,30 @@
+name: Create Client Release
+permissions:
+  contents: write
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release-client:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      -
+        name: Set up Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.22
+      - 
+        name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v2
+        with:
+          distribution: goreleaser
+          version: latest
+          args: release --clean -f .goreleaser-client.yaml 
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
