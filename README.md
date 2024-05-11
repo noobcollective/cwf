@@ -1,23 +1,24 @@
 # cwf - copy with friends
 
 ## Installation
+We provide a homebrew package to install `cwf` as a binary. \
+It's totally possible to run the server with the binary. \
+However if you are planning to run `cwf` on a server (e.g. VPS) we recommend using our [docker image](#docker-image).
 
-### MacOS
+### MacOS & Linux
 ```bash
-brew install iculturebud/tap/cwf
+brew install noobcollective/tap/cwf
 ```
-
 
 ## Example config
 ```yaml
 ---
  motherShipIP: 127.0.0.1
  motherShipPort: 8787
- motherShipSSL: true  <-- can be omitted - default is false
+ motherShipSSL: true  <- false to disable HTTPS
 ```
 
-
-## Usage
+## Client Usage
 ### Send content to server and save it in a single file.
 ```
 echo "Hello Clipboard!" | cwf testfile
@@ -64,7 +65,7 @@ cwf -d testdir/
 ```
 cwf -l
 ```
-``` 
+```
 Type    Name         Modified
 Dir    testdir      2006-01-02 15:04:05
 File   testfile.cwf 2006-01-02 15:04:05
@@ -79,6 +80,36 @@ Type    Name         Modified
 File   testfile.cwf 2006-01-02 15:04:05
 ```
 
+## Docker Image
+- Get the image with:
+    ```bash
+    docker pull noobcollective/cwf
+    ```
+- Start `cwf` with docker in HTTP Mode:
+    ```bash
+    docker run \
+        --name cwf-server \
+        -p <host_port>:<container_port> \
+        -v <volume_name>:<container_filesDir> \
+        -d noobcollective/cwf -serve
+    ```
+- Start `cwf` with docker in HTTPS Mode:
+    ```bash
+    docker run \
+        --name cwf-server \
+        -p <host_port>:<container_port> \
+        -v <volume_name>:<container_filesDir> \
+        -v /etc/crypts:<host_ssl_certs_dir> \
+        -d noobcollective/cwf -serve -https -certfile <path_to_ssl_cert> -keyfile <path_to_ssl_key>
+    ```
+- `<container_port>`: Configurable via `-port` argument in cwf -> defaults to 8787
+- `<volume_name>`: Name of the docker volume for persisting data.
+- `<container_filesDir>`: Configurable via `-filesDir` argument in cwf -> defaults to `/tmp/cwf/`
+
+When using the `-https` flag, you need to mount the directory where the SSL certificates are located on your host machine \
+and provide the names of your ssl certificate and key to `cwf` with the `-certfile` and `-keyfile` arguments.
+- `<host_ssl_certs_dir>`: Directory where the SSL certificates are located on your host machine.
+- `<container_ssl_certs_dir>`: Configurable via `-certsdir` argument in cwf -> defaults to `/etc/crypts`
 
 ## Roadmap:
 - [ ] get size of files
