@@ -29,11 +29,6 @@ var (
 )
 
 func main() {
-	if os.Geteuid() == 0 {
-		fmt.Fprintf(os.Stderr, "You know what you did!\n")
-		return
-	}
-
 	if len(os.Args) == 1 {
 		fmt.Fprintf(os.Stderr, "Please use args or provide a filename!\n")
 		return
