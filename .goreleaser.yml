@@ -9,5 +9,5 @@ dockers:
   - ids:
     - cwf
   - image_templates:
-    - "iculture/cwf:latest"
-    - "iculture/cwf:{{ .Tag }}"
+    - "noobcollective/cwf:latest"
+    - "noobcollective/cwf:{{ .Tag }}"
