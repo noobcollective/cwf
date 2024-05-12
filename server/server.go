@@ -326,6 +326,22 @@ func handleListContent(writer http.ResponseWriter, req *http.Request) {
 	writeRes(writer, http.StatusOK, response)
 }
 
+// Function to first time register users on server and send back their nonce.
+func handleUserRegistration(writer http.ResponseWriter, req *http.Request) {
+	zap.L().Info("Got POST on /user/register/")
+
+	var body map[string]*json.RawMessage
+	if err := json.NewDecoder(req.Body).Decode(&body); err != nil {
+		zap.L().Error("Failed to decode request body! Error: " + err.Error())
+		http.Error(writer, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	userName := fmt.Sprintf("%s", body["username"])
+	zap.L().Info(userName)
+	writeRes(writer, http.StatusOK, "Got username")
+}
+
 // Default handler for 404 pages
 func handleNotFound(writer http.ResponseWriter, req *http.Request) {
 	zap.L().Warn("User called Endpoint: '" + req.URL.String() + "'!")
