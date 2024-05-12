@@ -18,7 +18,7 @@ import (
 	"go.uber.org/zap"
 )
 
-var FILE_SUFFIX string = ".cwf"
+var fileSuffix string = ".cwf"
 var filesDir string
 var port int
 
@@ -32,8 +32,7 @@ func initServer() bool {
 	port = utilities.GetFlagValue[int]("port")
 
 	if _, err := os.Stat(filesDir); os.IsNotExist(err) {
-		err := os.MkdirAll(filesDir, 0777)
-		if err != nil {
+		if err := os.MkdirAll(filesDir, 0777); err != nil {
 			zap.L().Error(err.Error())
 			return false
 		}
@@ -87,7 +86,7 @@ func handleGetContent(writer http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	content, err := os.ReadFile(filesDir + pathname + FILE_SUFFIX)
+	content, err := os.ReadFile(filesDir + pathname + fileSuffix)
 	if err != nil {
 		zap.L().Info("File not found! Filename: " + pathname)
 		writeRes(writer, http.StatusNotFound, "File not found!")
@@ -110,8 +109,7 @@ func handlePostContent(writer http.ResponseWriter, req *http.Request) {
 	}
 
 	var body entities.CWFBody_t
-	err := json.NewDecoder(req.Body).Decode(&body)
-	if err != nil {
+	if err := json.NewDecoder(req.Body).Decode(&body); err != nil {
 		zap.L().Error("Failed to decode request body! Error: " + err.Error())
 		http.Error(writer, err.Error(), http.StatusBadRequest)
 		return
@@ -125,8 +123,7 @@ func handlePostContent(writer http.ResponseWriter, req *http.Request) {
 		}
 
 		if _, err := os.Stat(filesDir + dirs[0]); os.IsNotExist(err) {
-			err = os.Mkdir(filesDir+dirs[0], os.ModePerm)
-			if err != nil {
+			if err := os.Mkdir(filesDir+dirs[0], os.ModePerm); err != nil {
 				zap.L().Error("Error while creating new directory: " + err.Error())
 				http.Error(writer, err.Error(), http.StatusBadRequest)
 				return
@@ -134,8 +131,7 @@ func handlePostContent(writer http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	err = os.WriteFile(filesDir+pathname+FILE_SUFFIX, []byte(body.Content), 0644)
-	if err != nil {
+	if err := os.WriteFile(filesDir+pathname+fileSuffix, []byte(body.Content), 0644); err != nil {
 		zap.L().Error("Error while creating/writing file! Error: " + err.Error())
 		http.Error(writer, err.Error(), http.StatusBadRequest)
 		return
@@ -161,7 +157,7 @@ func handleDeleteContent(writer http.ResponseWriter, req *http.Request) {
 		err = os.RemoveAll(filesDir + target)
 		msg = "Deleted directory: " + strings.TrimSuffix(target, "/")
 	} else {
-		err = os.Remove(filesDir + target + FILE_SUFFIX)
+		err = os.Remove(filesDir + target + fileSuffix)
 		msg = "Deleted file: " + target
 	}
 
@@ -256,6 +252,7 @@ func (checker cwfChecker) ServeHTTP(writer http.ResponseWriter, req *http.Reques
 		return
 	}
 
+	// Check for user nonce.
 	userNonce := req.Header.Get("Cwf-User-Nonce")
 	if userNonce == "" || userNonce != "<uuid>" {
 		http.Error(writer, "User not found!", http.StatusForbidden)
