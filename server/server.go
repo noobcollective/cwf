@@ -26,7 +26,6 @@ type cwfChecker struct {
 	handler http.Handler
 }
 
-
 // Init server
 func initServer() bool {
 	filesDir = utilities.GetFlagValue[string]("filesdir")
@@ -244,19 +243,20 @@ func writeRes(writer http.ResponseWriter, statuscode int, content string) {
 
 func (checker cwfChecker) ServeHTTP(writer http.ResponseWriter, req *http.Request) {
 	// Check for needed header.
-	if _, ok := req.Header["CWF_CLI_REQ"]; !ok {
+	if _, ok := req.Header["Cwf-Cli-Req"]; !ok {
 		http.Error(writer, "Not authorized!", http.StatusForbidden)
 		return
 	}
 
 	// Match CWF version of server against client.
-	cliVersion := req.Header.Get("CWF_CLI_VERSION")
-	if cliVersion == "" || (cliVersion != utilities.GetFlagValue[string]("version")) {
+	cliVersion := req.Header.Get("Cwf-Cli-Version")
+	if cliVersion == "" || (cliVersion != "0.3.1") {
+		zap.L().Warn("Got version: " + cliVersion)
 		http.Error(writer, "No version found or version mismatch!", http.StatusBadRequest)
 		return
 	}
 
-	userNonce := req.Header.Get("USER_NONCE")
+	userNonce := req.Header.Get("User-Nonce")
 	if userNonce == "" || userNonce != "8938029B-A99C-497F-AE74-4D7373BDEDE7" {
 		http.Error(writer, "User not found!", http.StatusForbidden)
 		return
@@ -264,4 +264,3 @@ func (checker cwfChecker) ServeHTTP(writer http.ResponseWriter, req *http.Reques
 
 	checker.handler.ServeHTTP(writer, req)
 }
-
