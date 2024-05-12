@@ -18,6 +18,8 @@ import (
 )
 
 var baseURL string
+var cwfClient http.Client
+var cwfHeader http.Header
 
 // Init client
 func initClient() bool {
@@ -47,6 +49,15 @@ func initClient() bool {
 	var cwfProtocol string = "http://"
 	if entities.MotherShip.MotherShipSSL {
 		cwfProtocol = "https://"
+	}
+
+	cwfClient = http.Client{}
+	cwfHeader = http.Header{
+		 // TODO: Make configurable?
+		"CWF-CLI-REQ": {"true"},
+		"CWF-CLI-VERSION": {utilities.GetFlagValue[string]("version")},
+		// FIXME: Get user nonce from toml.
+		"USER-NONCE": {"8938029B-A99C-497F-AE74-4D7373BDEDE7"},
 	}
 
 	baseURL = cwfProtocol + entities.MotherShip.MotherShipIP + ":" + entities.MotherShip.MotherShipPort + "/cwf/"
@@ -85,10 +96,8 @@ func sendContent() {
 		return
 	}
 
-	res, err := http.Post(baseURL + "content/" + os.Args[1],
-		"application/json", bytes.NewBuffer(body))
+	res, err := makeRequest("POST", baseURL + "content/" + os.Args[1], bytes.NewBuffer(body))
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error sending request! Error <%v>\n", err)
 		return
 	}
 
@@ -103,9 +112,8 @@ func sendContent() {
 
 // Get content of clipboard file.
 func getContent() {
-	res, err := http.Get(baseURL + "content/" + os.Args[1])
+	res, err := makeRequest("GET", baseURL + "content/" + os.Args[1], nil)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error getting content! Err <%v>\n", err)
 		return
 	}
 
@@ -136,9 +144,8 @@ func listFiles() {
 		reqUrl += os.Args[2]
 	}
 
-	res, err := http.Get(reqUrl)
+	res, err := makeRequest("GET", reqUrl, nil)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error sending request! Error <%v>\n", err)
 		return
 	}
 
@@ -158,16 +165,8 @@ func deleteFile() {
 		return
 	}
 
-	client := &http.Client{}
-	req, err := http.NewRequest("DELETE", baseURL + "content/" + os.Args[2], nil)
+	res, err := makeRequest("DELETE", baseURL + "content/" + os.Args[2], nil)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Creating a new request with method DELETE failed! Error <%v>\n", err)
-		return
-	}
-
-	res, err := client.Do(req)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error sending request! Error <%v>\n", err)
 		return
 	}
 
@@ -184,4 +183,24 @@ func deleteFile() {
 func fromPipe() bool {
 	content, _ := os.Stdin.Stat()
 	return content.Mode()&os.ModeCharDevice == 0
+}
+
+
+// Creates a request object and add default headers.
+// Returns (*http.Response, nil) when successful - (nil, error) otherwise.
+func makeRequest(method string, url string, body io.Reader) (*http.Response, error) {
+	req, err := http.NewRequest(method, url, body)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error creating request! Error <%v>\n", err)
+		return nil, err
+	}
+
+	req.Header = cwfHeader
+	res, err := cwfClient.Do(req)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error sending request! Err <%v>\n", err)
+		return nil, err
+	}
+
+	return res, nil
 }
