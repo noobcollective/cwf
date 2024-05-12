@@ -67,6 +67,8 @@ func StartClient() {
 		listFiles()
 	} else if utilities.GetFlagValue[bool]("d") {
 		deleteFile()
+	} else if utilities.GetFlagValue[string]("r") != "" {
+		registerUser()
 	} else {
 		getContent()
 	}
@@ -160,6 +162,31 @@ func deleteFile() {
 	}
 
 	res, err := makeRequest("DELETE", baseURL+"content/"+os.Args[2], nil)
+	if err != nil {
+		return
+	}
+
+	defer res.Body.Close()
+	responseData, err := io.ReadAll(res.Body)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error Reading response body! Error <%v>\n", err)
+		return
+	}
+
+	fmt.Println(string(responseData))
+}
+
+// Registers user with their name and stores the given UUID.
+func registerUser() {
+	userName := utilities.GetFlagValue[string]("r")
+	if userName == "" {
+		fmt.Fprintf(os.Stderr, "No username provided!")
+		return
+	}
+
+	// userName := base64.StdEncoding.EncodeToString([]byte(os.Args[2]))
+	var jsonStr = []byte("{\"username\": " + userName + "\"}")
+	res, err := makeRequest("POST", baseURL + "user/register/", bytes.NewBuffer(jsonStr))
 	if err != nil {
 		return
 	}
