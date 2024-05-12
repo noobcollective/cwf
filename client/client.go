@@ -7,8 +7,10 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"time"
 	"io"
 	"net/http"
+	"net"
 	"os"
 
 	"cwf/entities"
@@ -18,8 +20,6 @@ import (
 )
 
 var baseURL string
-var cwfClient http.Client
-var cwfHeaders map[string]string
 
 // Init client
 func initClient() bool {
@@ -49,16 +49,6 @@ func initClient() bool {
 	var cwfProtocol string = "http://"
 	if entities.MotherShip.MotherShipSSL {
 		cwfProtocol = "https://"
-	}
-
-	cwfClient = http.Client{}
-	cwfHeaders = map[string]string{
-		 // TODO: Make configurable?
-		"CWF-CLI-REQ": "true",
-		// "CWF-CLI-VERSION": {utilities.GetFlagValue[string]("version")}, // INFO: Available in releases.
-		"CWF-CLI-VERSION": "0.3.1",
-		// FIXME: Get user nonce from toml.
-		"USER-NONCE": "<uuid>",
 	}
 
 	baseURL = cwfProtocol + entities.MotherShip.MotherShipIP + ":" + entities.MotherShip.MotherShipPort + "/cwf/"
@@ -102,6 +92,7 @@ func sendContent() {
 		return
 	}
 
+	defer res.Body.Close()
 	responseData, err := io.ReadAll(res.Body)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error Reading response body! Error <%v>\n", err)
@@ -118,6 +109,7 @@ func getContent() {
 		return
 	}
 
+	defer res.Body.Close()
 	bodyEncoded, err := io.ReadAll(res.Body)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error Reading response body! Error <%v>\n", err)
@@ -150,6 +142,7 @@ func listFiles() {
 		return
 	}
 
+	defer res.Body.Close()
 	responseData, err := io.ReadAll(res.Body)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error Reading response body! Error <%v>\n", err)
@@ -171,6 +164,7 @@ func deleteFile() {
 		return
 	}
 
+	defer res.Body.Close()
 	responseData, err := io.ReadAll(res.Body)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error Reading response body! Error <%v>\n", err)
@@ -180,15 +174,19 @@ func deleteFile() {
 	fmt.Println(string(responseData))
 }
 
-// Check if we are getting content from pipe.
-func fromPipe() bool {
-	content, _ := os.Stdin.Stat()
-	return content.Mode()&os.ModeCharDevice == 0
-}
-
-// Creates a request object and add default headers.
+// Creates a request object and adds default headers.
 // Returns (*http.Response, nil) when successful - (nil, error) otherwise.
 func makeRequest(method string, url string, body io.Reader) (*http.Response, error) {
+	client := &http.Client{
+		Timeout: 10 * time.Second,
+		Transport: &http.Transport{
+			Dial: (&net.Dialer{
+				Timeout: 10 * time.Second,
+			}).Dial,
+			TLSHandshakeTimeout: 10 * time.Second,
+		},
+	}
+
 	req, err := http.NewRequest(method, url, body)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error creating request! Error <%v>\n", err)
@@ -196,15 +194,21 @@ func makeRequest(method string, url string, body io.Reader) (*http.Response, err
 	}
 
 	// Add needed headers
-	for header, value := range cwfHeaders {
-		req.Header.Set(header, value)
-	}
+	req.Header.Set("Cwf-Cli-Req", "true")
+	req.Header.Set("Cwf-Cli-Version", "0.3.1")
+	req.Header.Set("Cwf-User-Nonce", "<uuid>")
 
-	res, err := cwfClient.Do(req)
+	res, err := client.Do(req)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error sending request! Err <%v>\n", err)
 		return nil, err
 	}
 
 	return res, nil
+}
+
+// Check if we are getting content from pipe.
+func fromPipe() bool {
+	content, _ := os.Stdin.Stat()
+	return content.Mode()&os.ModeCharDevice == 0
 }
