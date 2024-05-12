@@ -1,7 +1,7 @@
 # cwf - copy with friends
 `cwf` is a small tool to quickly share content (e.g. logfiles, commands, ...) with your friends and colleagues. It can be run local or on a server, so nobody needs to set things up like port forwarding on their local machine.
 
-[!WARNING]
+[!CAUTION]
 As of now we do **not recommend** sending sensitive data! Although the transport can be handled via HTTPS, the files on the server are just `base64` encoded and can be accessed via the given endpoints from any IP.
 
 ## Demo

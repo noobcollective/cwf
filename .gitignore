@@ -1,3 +1,5 @@
 cwf
 *.cwf
 config/config.yaml
+.DS_Store
+assets/*
