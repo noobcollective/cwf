@@ -5,6 +5,8 @@ We provide a homebrew package to install `cwf` as a binary. \
 It's totally possible to run the server with the binary. \
 However if you are planning to run `cwf` on a server (e.g. VPS) we recommend using our [docker image](#docker-image).
 
+![cwf_demo](https://github.com/noobcollective/cwf/assets/99724871/735c6e1c-c6e4-4d8d-8df8-4697182746ce)
+
 ### MacOS & Linux
 ```bash
 brew install noobcollective/tap/cwf
