@@ -22,6 +22,11 @@ var FILE_SUFFIX string = ".cwf"
 var filesDir string
 var port int
 
+type cwfChecker struct {
+	handler http.Handler
+}
+
+
 // Init server
 func initServer() bool {
 	filesDir = utilities.GetFlagValue[string]("filesdir")
@@ -65,10 +70,11 @@ func StartServer() {
 
 	zap.L().Info("Serving on Port: " + strconv.Itoa(port))
 	if !utilities.GetFlagValue[bool]("https") {
-		log.Fatal(http.ListenAndServe(":" + fmt.Sprint(port), mux))
-	} else {
-		log.Fatal(http.ListenAndServeTLS(":" + fmt.Sprint(port), certPath, keyPath, mux))
+		log.Fatal(http.ListenAndServe(":" + fmt.Sprint(port), cwfChecker{mux}))
 	}
+
+	log.Fatal(http.ListenAndServeTLS(":" + fmt.Sprint(port),
+		certPath, keyPath, cwfChecker{mux}))
 }
 
 // handleStdout is called on `GET` to return the saved content of a file.
@@ -235,3 +241,27 @@ func writeRes(writer http.ResponseWriter, statuscode int, content string) {
 	writer.WriteHeader(statuscode)
 	writer.Write([]byte(content))
 }
+
+func (checker cwfChecker) ServeHTTP(writer http.ResponseWriter, req *http.Request) {
+	// Check for needed header.
+	if _, ok := req.Header["CWF_CLI_REQ"]; !ok {
+		http.Error(writer, "Not authorized!", http.StatusForbidden)
+		return
+	}
+
+	// Match CWF version of server against client.
+	cliVersion := req.Header.Get("CWF_CLI_VERSION")
+	if cliVersion == "" || (cliVersion != utilities.GetFlagValue[string]("version")) {
+		http.Error(writer, "No version found or version mismatch!", http.StatusBadRequest)
+		return
+	}
+
+	userNonce := req.Header.Get("USER_NONCE")
+	if userNonce == "" || userNonce != "8938029B-A99C-497F-AE74-4D7373BDEDE7" {
+		http.Error(writer, "User not found!", http.StatusForbidden)
+		return
+	}
+
+	checker.handler.ServeHTTP(writer, req)
+}
+

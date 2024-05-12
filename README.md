@@ -7,7 +7,6 @@ As of now we do **not recommend** sending sensitive data! Although the transport
 ## Demo
 ![cwf_demo](https://github.com/noobcollective/cwf/assets/99724871/d2a2c286-516a-4db5-b3b4-d8ff34e8867c)
 
-
 ## Installation
 We provide a homebrew package to install `cwf` as a binary. \
 It's totally possible to run the server with the binary. \
