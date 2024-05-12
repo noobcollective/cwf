@@ -1,11 +1,15 @@
 # cwf - copy with friends
+`cwf` is a small tool to quickly share content (e.g. logfiles, commands, ...) with your friends and colleagues. It can be run local or on a server, so nobody needs to set up things like port forwarding on their local machine.
+[!WARNING]
+As of now we do **not recommend** sending sensitive data! Although the transport can be handled via HTTPS, the files on the server are just `base64` encoded and can be accessed via the given endpoints from any IP.
+
+## Demo
+![cwf_demo](https://github.com/noobcollective/cwf/assets/99724871/46a68c90-c128-4b57-9dd8-f94ddb5dbe2c)
 
 ## Installation
 We provide a homebrew package to install `cwf` as a binary. \
 It's totally possible to run the server with the binary. \
 However if you are planning to run `cwf` on a server (e.g. VPS) we recommend using our [docker image](#docker-image).
-
-![cwf_demo](https://github.com/noobcollective/cwf/assets/99724871/735c6e1c-c6e4-4d8d-8df8-4697182746ce)
 
 ### MacOS & Linux
 ```bash
