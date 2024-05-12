@@ -257,7 +257,7 @@ func (checker cwfChecker) ServeHTTP(writer http.ResponseWriter, req *http.Reques
 	}
 
 	userNonce := req.Header.Get("User-Nonce")
-	if userNonce == "" || userNonce != "8938029B-A99C-497F-AE74-4D7373BDEDE7" {
+	if userNonce == "" || userNonce != "<uuid>" {
 		http.Error(writer, "User not found!", http.StatusForbidden)
 		return
 	}

@@ -19,7 +19,7 @@ import (
 
 var baseURL string
 var cwfClient http.Client
-var cwfHeader http.Header
+var cwfHeaders map[string]string
 
 // Init client
 func initClient() bool {
@@ -52,12 +52,13 @@ func initClient() bool {
 	}
 
 	cwfClient = http.Client{}
-	cwfHeader = http.Header{
+	cwfHeaders = map[string]string{
 		 // TODO: Make configurable?
-		"CWF-CLI-REQ": {"true"},
-		"CWF-CLI-VERSION": {utilities.GetFlagValue[string]("version")},
+		"CWF-CLI-REQ": "true",
+		// "CWF-CLI-VERSION": {utilities.GetFlagValue[string]("version")}, // INFO: Available in releases.
+		"CWF-CLI-VERSION": "0.3.1",
 		// FIXME: Get user nonce from toml.
-		"USER-NONCE": {"8938029B-A99C-497F-AE74-4D7373BDEDE7"},
+		"USER-NONCE": "<uuid>",
 	}
 
 	baseURL = cwfProtocol + entities.MotherShip.MotherShipIP + ":" + entities.MotherShip.MotherShipPort + "/cwf/"
@@ -185,7 +186,6 @@ func fromPipe() bool {
 	return content.Mode()&os.ModeCharDevice == 0
 }
 
-
 // Creates a request object and add default headers.
 // Returns (*http.Response, nil) when successful - (nil, error) otherwise.
 func makeRequest(method string, url string, body io.Reader) (*http.Response, error) {
@@ -195,7 +195,11 @@ func makeRequest(method string, url string, body io.Reader) (*http.Response, err
 		return nil, err
 	}
 
-	req.Header = cwfHeader
+	// Add needed headers
+	for header, value := range cwfHeaders {
+		req.Header.Set(header, value)
+	}
+
 	res, err := cwfClient.Do(req)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error sending request! Err <%v>\n", err)
