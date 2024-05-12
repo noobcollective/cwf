@@ -230,13 +230,15 @@ func handleNotFound(writer http.ResponseWriter, req *http.Request) {
 	// TODO: We should probabyl ban/block such ip addresses which try acces endpoints without the cwf client
 }
 
-// Respond the go way.
+// Sets default header and writes back the response.
 func writeRes(writer http.ResponseWriter, statuscode int, content string) {
 	writer.Header().Set("Content-Type", "text/plain")
 	writer.WriteHeader(statuscode)
 	writer.Write([]byte(content))
 }
 
+// Prehandler for all CWF request.
+// Checks various headers to determine if usage is safe.
 func (checker cwfChecker) ServeHTTP(writer http.ResponseWriter, req *http.Request) {
 	// Check for needed header.
 	if _, ok := req.Header["Cwf-Cli-Req"]; !ok {
