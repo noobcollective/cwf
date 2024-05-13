@@ -2,9 +2,9 @@ package entities
 
 // Typedef for the yaml config object.
 type Config_t struct {
-	MotherShipIP   string
-	MotherShipPort string
-	MotherShipSSL  bool
+	MotherShipIP   string `toml:"motherShipIP"`
+	MotherShipPort string `toml:"motherShipPort"`
+	MotherShipSSL  bool   `toml:"motherShipSSL"`
 }
 
 type ServerConfig_t struct {

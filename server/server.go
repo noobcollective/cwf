@@ -15,6 +15,7 @@ import (
 	"cwf/entities"
 	"cwf/utilities"
 
+	"github.com/google/uuid"
 	"github.com/pelletier/go-toml/v2"
 	"go.uber.org/zap"
 )
@@ -23,6 +24,9 @@ const FILE_SUFFIX string = ".cwf"
 
 var filesDir string
 var port int
+
+// Global Variabel to hold users in memory
+var ServerUsers map[string]entities.ServerAccount_t
 
 type cwfChecker_t struct {
 	handler http.Handler
@@ -52,21 +56,42 @@ func initServer() bool {
 		return false
 	}
 
-	file, err := os.ReadFile(usrHome + "/.config/cwf/config.toml")
+	file, err := os.ReadFile(usrHome + "/.config/cwf/serverConfig.toml")
 	if err != nil {
 		zap.L().Error("No config file found! Check README for config example! Error " + err.Error())
 		return false
 	}
 
+	zap.L().Info("Reading allowed users from config")
 	err = toml.Unmarshal(file, &entities.ServerConfig)
 	if err != nil {
 		zap.L().Error("Error deconding toml err: " + err.Error())
 		return false
 	}
 
-	zap.L().Info("Allowed Users on Server: ")
-	for _, e := range entities.ServerConfig.Server.Accounts {
-		zap.L().Info("UserName: " + e.UserName)
+	zap.L().Info("Generating UUID's for Users")
+	for i := range entities.ServerConfig.Server.Accounts {
+		user := &entities.ServerConfig.Server.Accounts[i]
+		id := uuid.New()
+		if entities.ServerConfig.Server.Accounts[i].Registed {
+			ServerUsers[user.UserName] = *user
+			continue
+		}
+
+		entities.ServerConfig.Server.Accounts[i].Nonce = id.String()
+		ServerUsers[user.UserName] = *user
+	}
+
+	tomlContent, err := toml.Marshal(entities.ServerConfig)
+	if err != nil {
+		zap.L().Error("Failed toml marshal")
+		return false
+	}
+
+	err = os.WriteFile(usrHome+"/.config/cwf/serverConfig.toml", tomlContent, 0644)
+	if err != nil {
+		zap.L().Info("Failed writing to toml file. Err: " + err.Error())
+		return false
 	}
 
 	return true
@@ -89,7 +114,7 @@ func StartServer() {
 	mux.HandleFunc("POST /cwf/content/{pathname...}", handlePostContent)
 	mux.HandleFunc("DELETE /cwf/content/{pathname...}", handleDeleteContent)
 	mux.HandleFunc("GET /cwf/list/{pathname...}", handleListContent)
-	mux.HandleFunc("GET /cwf/register", handleAccountRegister)
+	mux.HandleFunc("GET /cwf/register/{username...}", handleAccountRegister)
 
 	// Handler for 404
 	mux.HandleFunc("/", handleNotFound)
@@ -203,7 +228,27 @@ func handleDeleteContent(writer http.ResponseWriter, req *http.Request) {
 func handleAccountRegister(writer http.ResponseWriter, req *http.Request) {
 	zap.L().Info("Got GET on /cwf/register")
 
-	writeRes(writer, http.StatusOK, "msg")
+	username := req.PathValue("username")
+	if username == "" {
+		zap.L().Info("No  username provided!")
+		writeRes(writer, http.StatusBadRequest, "No username provided!")
+		return
+	}
+
+	val, ok := ServerUsers[username]
+	if !ok {
+		zap.L().Error("Unknown user: " + username)
+		http.Error(writer, "Unknown user: "+username, http.StatusBadRequest)
+		return
+	}
+
+	val.Registed = true // TODO fix typo Registed...
+
+	// At this point we need to update the server toml file and set the field registred true
+	// TODO:
+
+	// Returning uuid client must use this from now on
+	writeRes(writer, http.StatusOK, val.Nonce)
 }
 
 // Function to return all files/directories in given query parameter
@@ -290,18 +335,23 @@ func (checker cwfChecker_t) ServeHTTP(writer http.ResponseWriter, req *http.Requ
 		return
 	}
 
-	// Check for user nonce.
+	// If we call register we have to skip the checks
+	if req.URL.Path == "register" {
+		return
+	}
 
+	// Check for user nonce.
 	userName := req.Header.Get("Cwf-User-Name")
-	if userName == "" || userName != "<userName>" {
-		http.Error(writer, "User not found!", http.StatusForbidden)
+	val, ok := ServerUsers[userName]
+	if !ok {
+		http.Error(writer, "User not found! USER: "+userName, http.StatusForbidden)
 		return
 	}
 
 	// Check for user nonce.
 	userNonce := req.Header.Get("Cwf-User-Nonce")
-	if userNonce == "" || userNonce != "<uuid>" {
-		http.Error(writer, "User not found!", http.StatusForbidden)
+	if val.Nonce != userNonce {
+		http.Error(writer, "Wrong UUID", http.StatusForbidden)
 		return
 	}
 
