@@ -5,7 +5,7 @@
 As of now we do **not recommend** sending sensitive data! Although the transport can be handled via HTTPS, the files on the server are just `base64` encoded and can be accessed via the given endpoints from any IP.
 
 ## Demo
-![cwf_demo](https://github.com/noobcollective/cwf/assets/99724871/d2a2c286-516a-4db5-b3b4-d8ff34e8867c)
+![cwf_demo](https://github.com/noobcollective/cwf/assets/99724871/6d40daf0-f012-4eb1-99ca-f0fa801bf3c6)
 
 ## Installation
 We provide a homebrew package to install `cwf` as a binary. \
