@@ -7,16 +7,16 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"time"
 	"io"
-	"net/http"
 	"net"
+	"net/http"
 	"os"
+	"time"
 
 	"cwf/entities"
 	"cwf/utilities"
 
-	"gopkg.in/yaml.v3"
+	"github.com/pelletier/go-toml/v2"
 )
 
 var baseURL string
@@ -29,13 +29,13 @@ func initClient() bool {
 		return false
 	}
 
-	config, err := os.ReadFile(usrHome + "/.config/cwf/config.yaml")
+	config, err := os.ReadFile(usrHome + "/.config/cwf/config.toml")
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "No config file found! Check README for config example! Error <%v>\n", err)
 		return false
 	}
 
-	err = yaml.Unmarshal(config, &entities.MotherShip)
+	err = toml.Unmarshal(config, &entities.MotherShip)
 	if err != nil {
 		fmt.Println("Config file could not be parsed")
 		return false
@@ -87,7 +87,7 @@ func sendContent() {
 		return
 	}
 
-	res, err := makeRequest("POST", baseURL + "content/" + os.Args[1], bytes.NewBuffer(body))
+	res, err := makeRequest("POST", baseURL+"content/"+os.Args[1], bytes.NewBuffer(body))
 	if err != nil {
 		return
 	}
@@ -104,7 +104,7 @@ func sendContent() {
 
 // Get content of clipboard file.
 func getContent() {
-	res, err := makeRequest("GET", baseURL + "content/" + os.Args[1], nil)
+	res, err := makeRequest("GET", baseURL+"content/"+os.Args[1], nil)
 	if err != nil {
 		return
 	}
@@ -159,7 +159,7 @@ func deleteFile() {
 		return
 	}
 
-	res, err := makeRequest("DELETE", baseURL + "content/" + os.Args[2], nil)
+	res, err := makeRequest("DELETE", baseURL+"content/"+os.Args[2], nil)
 	if err != nil {
 		return
 	}
