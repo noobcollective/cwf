@@ -185,8 +185,9 @@ func registerUser() {
 	}
 
 	// userName := base64.StdEncoding.EncodeToString([]byte(os.Args[2]))
-	var jsonStr = []byte("{\"username\": " + userName + "\"}")
-	res, err := makeRequest("POST", baseURL + "user/register/", bytes.NewBuffer(jsonStr))
+	// var jsonStr = []byte("{\"username\": " + userName + "\"}")
+	// res, err := makeRequest("POST", baseURL + "user/register/", bytes.NewBuffer(jsonStr))
+	res, err := makeRequest("GET", baseURL + "register/" + os.Args[2], nil)
 	if err != nil {
 		return
 	}
@@ -223,6 +224,7 @@ func makeRequest(method string, url string, body io.Reader) (*http.Response, err
 	// Add needed headers
 	req.Header.Set("Cwf-Cli-Req", "true")
 	req.Header.Set("Cwf-Cli-Version", "0.3.1")
+	req.Header.Set("Cwf-User-Name", "<username>")
 	req.Header.Set("Cwf-User-Nonce", "<uuid>")
 
 	res, err := client.Do(req)
