@@ -77,7 +77,7 @@ func initServer() bool {
 
 	tomlContent, err := toml.Marshal(entities.ServerConfig)
 	if err != nil {
-		zap.L().Error("Failed to parse config into struct.")
+		zap.L().Error("Failed to parse config into string.")
 		return false
 	}
 
