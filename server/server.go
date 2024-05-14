@@ -20,7 +20,7 @@ import (
 	"go.uber.org/zap"
 )
 
-const FILE_SUFFIX string = ".cwf"
+const file_suffix string = ".cwf"
 
 var filesDir string
 var port int
@@ -66,18 +66,18 @@ func initServer() bool {
 	for i := range entities.ServerConfig.Server.Accounts {
 		user := &entities.ServerConfig.Server.Accounts[i]
 		id := uuid.New()
-		if entities.ServerConfig.Server.Accounts[i].Registed {
-			ServerUsers[user.UserName] = *user
+		if entities.ServerConfig.Server.Accounts[i].Registered {
+			ServerUsers[user.Name] = *user
 			continue
 		}
 
 		entities.ServerConfig.Server.Accounts[i].Nonce = id.String()
-		ServerUsers[user.UserName] = *user
+		ServerUsers[user.Name] = *user
 	}
 
 	tomlContent, err := toml.Marshal(entities.ServerConfig)
 	if err != nil {
-		zap.L().Error("Failed toml marshal")
+		zap.L().Error("Failed to parse config into struct.")
 		return false
 	}
 
@@ -103,16 +103,16 @@ func StartServer() {
 	mux.HandleFunc("POST /cwf/content/{pathname...}", handlePostContent)
 	mux.HandleFunc("DELETE /cwf/content/{pathname...}", handleDeleteContent)
 	mux.HandleFunc("GET /cwf/list/{pathname...}", handleListContent)
-	mux.HandleFunc("GET /cwf/register/{username...}", handleAccountRegister)
+	mux.HandleFunc("GET /cwf/register/{username}", handleAccountRegister)
 
 	// Handler for 404
 	mux.HandleFunc("/", handleNotFound)
 
 	zap.L().Info("Serving on Port: " + strconv.Itoa(port))
 	if !utilities.GetFlagValue[bool]("https") {
-		log.Fatal(http.ListenAndServe(":"+fmt.Sprint(port), cwfChecker_t{mux}))
+		log.Fatal(http.ListenAndServe(":" + fmt.Sprint(port), cwfChecker_t{mux}))
 	} else {
-		log.Fatal(http.ListenAndServeTLS(":"+fmt.Sprint(port),
+		log.Fatal(http.ListenAndServeTLS(":" + fmt.Sprint(port),
 			certPath, keyPath, cwfChecker_t{mux}))
 	}
 
@@ -129,7 +129,7 @@ func handleGetContent(writer http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	content, err := os.ReadFile(filesDir + pathname + FILE_SUFFIX)
+	content, err := os.ReadFile(filesDir + pathname + file_suffix)
 	if err != nil {
 		zap.L().Info("File not found! Filename: " + pathname)
 		writeRes(writer, http.StatusNotFound, "File not found!")
@@ -166,7 +166,7 @@ func handlePostContent(writer http.ResponseWriter, req *http.Request) {
 		}
 
 		if _, err := os.Stat(filesDir + dirs[0]); os.IsNotExist(err) {
-			if err := os.Mkdir(filesDir+dirs[0], os.ModePerm); err != nil {
+			if err := os.Mkdir(filesDir + dirs[0], os.ModePerm); err != nil {
 				zap.L().Error("Error while creating new directory: " + err.Error())
 				http.Error(writer, err.Error(), http.StatusBadRequest)
 				return
@@ -174,13 +174,13 @@ func handlePostContent(writer http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	if err := os.WriteFile(filesDir+pathname+FILE_SUFFIX, []byte(body.Content), 0644); err != nil {
+	if err := os.WriteFile(filesDir + pathname + file_suffix, []byte(body.Content), 0644); err != nil {
 		zap.L().Error("Error while creating/writing file! Error: " + err.Error())
 		http.Error(writer, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	writeRes(writer, http.StatusOK, "Saved to: "+pathname)
+	writeRes(writer, http.StatusOK, "Saved to: " + pathname)
 }
 
 // handleDelete is called on `DELETE` to clean the directory or file.
@@ -200,7 +200,7 @@ func handleDeleteContent(writer http.ResponseWriter, req *http.Request) {
 		err = os.RemoveAll(filesDir + target)
 		msg = "Deleted directory: " + strings.TrimSuffix(target, "/")
 	} else {
-		err = os.Remove(filesDir + target + FILE_SUFFIX)
+		err = os.Remove(filesDir + target + file_suffix)
 		msg = "Deleted file: " + target
 	}
 
@@ -211,66 +211,6 @@ func handleDeleteContent(writer http.ResponseWriter, req *http.Request) {
 	}
 
 	writeRes(writer, http.StatusOK, msg)
-}
-
-// handleRegisterAccount for exchanging nonce with client
-func handleAccountRegister(writer http.ResponseWriter, req *http.Request) {
-	zap.L().Info("Got GET on /cwf/register")
-
-	username := req.PathValue("username")
-	if username == "" {
-		zap.L().Info("No  username provided!")
-		writeRes(writer, http.StatusBadRequest, "No username provided!")
-		return
-	}
-
-	val, ok := ServerUsers[username]
-	if !ok {
-		zap.L().Error("Unknown user: " + username)
-		http.Error(writer, "Unknown user: "+username, http.StatusBadRequest)
-		return
-	}
-
-	if val.Registed {
-		zap.L().Info("User already registered")
-		writeRes(writer, http.StatusBadRequest, "User already registered")
-		return
-	}
-
-	file, err := utilities.LoadConfig()
-	if err != nil {
-		return
-	}
-
-	err = toml.Unmarshal(file, &entities.ServerConfig)
-	if err != nil {
-		zap.L().Error("Error deconding toml err: " + err.Error())
-		return
-	}
-
-	for i := range entities.ServerConfig.Server.Accounts {
-		user := &entities.ServerConfig.Server.Accounts[i]
-		if user.UserName == username {
-			user.Registed = true
-			break
-		}
-
-		ServerUsers[user.UserName] = *user
-	}
-
-	tomlContent, err := toml.Marshal(entities.ServerConfig)
-	if err != nil {
-		zap.L().Error("Failed toml marshal")
-		return
-	}
-
-	err = utilities.WriteConfig(tomlContent)
-	if err != nil {
-		return
-	}
-
-	// Returning uuid client must use this from now on
-	writeRes(writer, http.StatusOK, ServerUsers[username].Nonce)
 }
 
 // Function to return all files/directories in given query parameter
@@ -326,20 +266,64 @@ func handleListContent(writer http.ResponseWriter, req *http.Request) {
 	writeRes(writer, http.StatusOK, response)
 }
 
-// Function to first time register users on server and send back their nonce.
-func handleUserRegistration(writer http.ResponseWriter, req *http.Request) {
-	zap.L().Info("Got POST on /user/register/")
+// handleRegisterAccount for exchanging nonce with client
+func handleAccountRegister(writer http.ResponseWriter, req *http.Request) {
+	zap.L().Info("Got GET on /register/")
 
-	var body map[string]*json.RawMessage
-	if err := json.NewDecoder(req.Body).Decode(&body); err != nil {
-		zap.L().Error("Failed to decode request body! Error: " + err.Error())
-		http.Error(writer, err.Error(), http.StatusBadRequest)
+	username := req.PathValue("username")
+	if username == "" {
+		zap.L().Info("No  username provided!")
+		writeRes(writer, http.StatusBadRequest, "No username provided!")
 		return
 	}
 
-	userName := fmt.Sprintf("%s", body["username"])
-	zap.L().Info(userName)
-	writeRes(writer, http.StatusOK, "Got username")
+	user, ok := ServerUsers[username]
+	if !ok {
+		zap.L().Error("Unknown user: " + username)
+		http.Error(writer, "Unknown user: " + username, http.StatusBadRequest)
+		return
+	}
+
+	if user.Registered {
+		zap.L().Info("User already registered")
+		writeRes(writer, http.StatusBadRequest, "User already registered")
+		return
+	}
+
+	file, err := utilities.LoadConfig()
+	if err != nil {
+		return
+	}
+
+	err = toml.Unmarshal(file, &entities.ServerConfig)
+	if err != nil {
+		zap.L().Error("Error deconding toml err: " + err.Error())
+		return
+	}
+
+	for i := range entities.ServerConfig.Server.Accounts {
+		user := &entities.ServerConfig.Server.Accounts[i]
+		if user.Name == username {
+			user.Registered = true
+			break
+		}
+
+		ServerUsers[user.Name] = *user
+	}
+
+	tomlContent, err := toml.Marshal(entities.ServerConfig)
+	if err != nil {
+		zap.L().Error("Failed toml marshal")
+		return
+	}
+
+	err = utilities.WriteConfig(tomlContent)
+	if err != nil {
+		return
+	}
+
+	// Returning uuid client must use this from now on
+	writeRes(writer, http.StatusOK, ServerUsers[username].Nonce)
 }
 
 // Default handler for 404 pages
@@ -367,30 +351,30 @@ func (checker cwfChecker_t) ServeHTTP(writer http.ResponseWriter, req *http.Requ
 
 	// Match CWF version of server against client.
 	cliVersion := req.Header.Get("Cwf-Cli-Version")
-	if cliVersion == "" || (cliVersion != "0.3.1") {
+	if cliVersion == "" || cliVersion != "0.3.1" {
 		zap.L().Warn("Got version: " + cliVersion)
 		http.Error(writer, "No version found or version mismatch!", http.StatusBadRequest)
 		return
 	}
 
 	// If we call register we have to skip the checks
-	if strings.Contains(req.URL.Path, "register") {
+	if strings.Contains(req.URL.Path, "register/") {
 		zap.L().Info("User called register skipping checks")
 		checker.handler.ServeHTTP(writer, req)
 		return
 	}
 
 	// Check for user nonce.
-	userName := req.Header.Get("Cwf-User-Name")
-	val, ok := ServerUsers[userName]
+	cliUserName := req.Header.Get("Cwf-User-Name")
+	user, ok := ServerUsers[cliUserName]
 	if !ok {
-		http.Error(writer, "User not found! USER: "+userName, http.StatusForbidden)
+		http.Error(writer, "User not found! USER: " + cliUserName, http.StatusForbidden)
 		return
 	}
 
 	// Check for user nonce.
 	userNonce := req.Header.Get("Cwf-User-Nonce")
-	if val.Nonce != userNonce {
+	if user.Nonce != userNonce {
 		http.Error(writer, "Wrong UUID", http.StatusForbidden)
 		return
 	}

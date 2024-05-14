@@ -15,9 +15,9 @@ type ServerConfig_t struct {
 }
 
 type ServerAccount_t struct {
-	UserName string `toml:"userName"`
+	Name string `toml:"userName"`
 	Nonce    string `toml:"nonce"`
-	Registed bool   `toml:"registered"`
+	Registered bool   `toml:"registered"`
 }
 
 type ServerToml_t struct {
