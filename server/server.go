@@ -26,7 +26,7 @@ var filesDir string
 var port int
 
 // Global Variabel to hold users in memory
-var ServerUsers map[string]entities.ServerAccount_t
+var ServerUsers = make(map[string]entities.ServerAccount_t)
 
 type cwfChecker_t struct {
 	handler http.Handler
@@ -50,15 +50,8 @@ func initServer() bool {
 		return false
 	}
 
-	usrHome, err := os.UserHomeDir()
+	file, err := utilities.LoadConfig()
 	if err != nil {
-		zap.L().Error("Could not retrieve home directory!")
-		return false
-	}
-
-	file, err := os.ReadFile(usrHome + "/.config/cwf/serverConfig.toml")
-	if err != nil {
-		zap.L().Error("No config file found! Check README for config example! Error " + err.Error())
 		return false
 	}
 
@@ -88,13 +81,9 @@ func initServer() bool {
 		return false
 	}
 
-	err = os.WriteFile(usrHome+"/.config/cwf/serverConfig.toml", tomlContent, 0644)
-	if err != nil {
-		zap.L().Info("Failed writing to toml file. Err: " + err.Error())
-		return false
-	}
+	err = utilities.WriteConfig(tomlContent)
 
-	return true
+	return err == nil
 }
 
 // Start the server and setup needed endpoints.
@@ -242,13 +231,46 @@ func handleAccountRegister(writer http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	val.Registed = true // TODO fix typo Registed...
+	if val.Registed {
+		zap.L().Info("User already registered")
+		writeRes(writer, http.StatusBadRequest, "User already registered")
+		return
+	}
 
-	// At this point we need to update the server toml file and set the field registred true
-	// TODO:
+	file, err := utilities.LoadConfig()
+	if err != nil {
+		return
+	}
+
+	err = toml.Unmarshal(file, &entities.ServerConfig)
+	if err != nil {
+		zap.L().Error("Error deconding toml err: " + err.Error())
+		return
+	}
+
+	for i := range entities.ServerConfig.Server.Accounts {
+		user := &entities.ServerConfig.Server.Accounts[i]
+		if user.UserName == username {
+			user.Registed = true
+			break
+		}
+
+		ServerUsers[user.UserName] = *user
+	}
+
+	tomlContent, err := toml.Marshal(entities.ServerConfig)
+	if err != nil {
+		zap.L().Error("Failed toml marshal")
+		return
+	}
+
+	err = utilities.WriteConfig(tomlContent)
+	if err != nil {
+		return
+	}
 
 	// Returning uuid client must use this from now on
-	writeRes(writer, http.StatusOK, val.Nonce)
+	writeRes(writer, http.StatusOK, ServerUsers[username].Nonce)
 }
 
 // Function to return all files/directories in given query parameter
@@ -336,7 +358,9 @@ func (checker cwfChecker_t) ServeHTTP(writer http.ResponseWriter, req *http.Requ
 	}
 
 	// If we call register we have to skip the checks
-	if req.URL.Path == "register" {
+	if strings.Contains(req.URL.Path, "register") {
+		zap.L().Info("User called register skipping checks")
+		checker.handler.ServeHTTP(writer, req)
 		return
 	}
 
