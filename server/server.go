@@ -34,6 +34,10 @@ type cwfChecker_t struct {
 
 // Init server
 func initServer() bool {
+	zap.L().Info("************************* START LOGGING *************************")
+	zap.L().Info("************************* START LOGGING *************************")
+	zap.L().Info("************************* START LOGGING *************************")
+
 	filesDir = utilities.GetFlagValue[string]("filesdir")
 	port = utilities.GetFlagValue[int]("port")
 
@@ -134,13 +138,13 @@ func handleGetContent(writer http.ResponseWriter, req *http.Request) {
 		// Check if it is maybe a directory
 		info, err := os.Stat(filesDir + pathname)
 		if err != nil {
-			zap.L().Error("Failed to show stats of file for path: " + filesDir + pathname)
+			zap.L().Warn("Failed to show stats of file for path: " + filesDir + pathname)
 			writeRes(writer, http.StatusBadRequest, "No file name or path provided!")
 			return
 		}
 
 		if info.IsDir() {
-			zap.L().Error("User tried typed Directory name. Either path is wrong or name Path: " + filesDir + pathname)
+			zap.L().Warn("User tried typed Directory name. Either path is wrong or name Path: " + filesDir + pathname)
 			writeRes(writer, http.StatusOK, "Requested File is a Directory, check your path/name")
 			return
 		}
@@ -383,6 +387,7 @@ func (checker cwfChecker_t) ServeHTTP(writer http.ResponseWriter, req *http.Requ
 	cliUserName := req.Header.Get("Cwf-User-Name")
 	user, ok := ServerUsers[cliUserName]
 	if !ok {
+		zap.L().Warn("User not found! Please register")
 		http.Error(writer, "User not found! Please register ", http.StatusForbidden)
 		return
 	}
