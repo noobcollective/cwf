@@ -131,8 +131,23 @@ func handleGetContent(writer http.ResponseWriter, req *http.Request) {
 
 	content, err := os.ReadFile(filesDir + pathname + FILE_SUFFIX)
 	if err != nil {
+		// Check if it is maybe a directory
+		info, err := os.Stat(filesDir + pathname)
+		if err != nil {
+			zap.L().Error("Failed to show stats of file for path: " + filesDir + pathname)
+			writeRes(writer, http.StatusBadRequest, "No file name or path provided!")
+			return
+		}
+
+		if info.IsDir() {
+			zap.L().Error("User tried typed Directory name. Either path is wrong or name Path: " + filesDir + pathname)
+			writeRes(writer, http.StatusOK, "Requested File is a Directory, check your path/name")
+			return
+		}
+
 		zap.L().Info("File not found! Filename: " + pathname)
 		writeRes(writer, http.StatusNotFound, "File not found!")
+
 		return
 	}
 
@@ -368,7 +383,7 @@ func (checker cwfChecker_t) ServeHTTP(writer http.ResponseWriter, req *http.Requ
 	userName := req.Header.Get("Cwf-User-Name")
 	val, ok := ServerUsers[userName]
 	if !ok {
-		http.Error(writer, "User not found! USER: "+userName, http.StatusForbidden)
+		http.Error(writer, "User not found! Please register ", http.StatusForbidden)
 		return
 	}
 
