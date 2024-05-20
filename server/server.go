@@ -20,7 +20,7 @@ import (
 	"go.uber.org/zap"
 )
 
-const FILE_SUFFIX string = ".cwf"
+const file_suffix string = ".cwf"
 
 var filesDir string
 var port int
@@ -81,7 +81,7 @@ func initServer() bool {
 
 	tomlContent, err := toml.Marshal(entities.ServerConfig)
 	if err != nil {
-		zap.L().Error("Failed toml marshal")
+		zap.L().Error("Failed to parse config into string.")
 		return false
 	}
 
@@ -107,16 +107,16 @@ func StartServer() {
 	mux.HandleFunc("POST /cwf/content/{pathname...}", handlePostContent)
 	mux.HandleFunc("DELETE /cwf/content/{pathname...}", handleDeleteContent)
 	mux.HandleFunc("GET /cwf/list/{pathname...}", handleListContent)
-	mux.HandleFunc("GET /cwf/register/{username...}", handleAccountRegister)
+	mux.HandleFunc("GET /cwf/register/{username}", handleAccountRegister)
 
 	// Handler for 404
 	mux.HandleFunc("/", handleNotFound)
 
 	zap.L().Info("Serving on Port: " + strconv.Itoa(port))
 	if !utilities.GetFlagValue[bool]("https") {
-		log.Fatal(http.ListenAndServe(":"+fmt.Sprint(port), cwfChecker_t{mux}))
+		log.Fatal(http.ListenAndServe(":" + fmt.Sprint(port), cwfChecker_t{mux}))
 	} else {
-		log.Fatal(http.ListenAndServeTLS(":"+fmt.Sprint(port),
+		log.Fatal(http.ListenAndServeTLS(":" + fmt.Sprint(port),
 			certPath, keyPath, cwfChecker_t{mux}))
 	}
 
@@ -133,7 +133,7 @@ func handleGetContent(writer http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	content, err := os.ReadFile(filesDir + pathname + FILE_SUFFIX)
+	content, err := os.ReadFile(filesDir + pathname + file_suffix)
 	if err != nil {
 		// Check if it is maybe a directory
 		info, err := os.Stat(filesDir + pathname)
@@ -185,7 +185,7 @@ func handlePostContent(writer http.ResponseWriter, req *http.Request) {
 		}
 
 		if _, err := os.Stat(filesDir + dirs[0]); os.IsNotExist(err) {
-			if err := os.Mkdir(filesDir+dirs[0], os.ModePerm); err != nil {
+			if err := os.Mkdir(filesDir + dirs[0], os.ModePerm); err != nil {
 				zap.L().Error("Error while creating new directory: " + err.Error())
 				http.Error(writer, err.Error(), http.StatusBadRequest)
 				return
@@ -193,13 +193,13 @@ func handlePostContent(writer http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	if err := os.WriteFile(filesDir+pathname+FILE_SUFFIX, []byte(body.Content), 0644); err != nil {
+	if err := os.WriteFile(filesDir + pathname + file_suffix, []byte(body.Content), 0644); err != nil {
 		zap.L().Error("Error while creating/writing file! Error: " + err.Error())
 		http.Error(writer, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	writeRes(writer, http.StatusOK, "Saved to: "+pathname)
+	writeRes(writer, http.StatusOK, "Saved to: " + pathname)
 }
 
 // handleDelete is called on `DELETE` to clean the directory or file.
@@ -219,7 +219,7 @@ func handleDeleteContent(writer http.ResponseWriter, req *http.Request) {
 		err = os.RemoveAll(filesDir + target)
 		msg = "Deleted directory: " + strings.TrimSuffix(target, "/")
 	} else {
-		err = os.Remove(filesDir + target + FILE_SUFFIX)
+		err = os.Remove(filesDir + target + file_suffix)
 		msg = "Deleted file: " + target
 	}
 
@@ -369,22 +369,22 @@ func (checker cwfChecker_t) ServeHTTP(writer http.ResponseWriter, req *http.Requ
 
 	// Match CWF version of server against client.
 	cliVersion := req.Header.Get("Cwf-Cli-Version")
-	if cliVersion == "" || (cliVersion != "0.3.1") {
+	if cliVersion == "" || cliVersion != "0.3.1" {
 		zap.L().Warn("Got version: " + cliVersion)
 		http.Error(writer, "No version found or version mismatch!", http.StatusBadRequest)
 		return
 	}
 
 	// If we call register we have to skip the checks
-	if strings.Contains(req.URL.Path, "register") {
+	if strings.Contains(req.URL.Path, "register/") {
 		zap.L().Info("User called register skipping checks")
 		checker.handler.ServeHTTP(writer, req)
 		return
 	}
 
 	// Check for user nonce.
-	userName := req.Header.Get("Cwf-User-Name")
-	val, ok := ServerUsers[userName]
+	cliUserName := req.Header.Get("Cwf-User-Name")
+	user, ok := ServerUsers[cliUserName]
 	if !ok {
 		zap.L().Warn("User not found! Please register")
 		http.Error(writer, "User not found! Please register ", http.StatusForbidden)
@@ -393,7 +393,7 @@ func (checker cwfChecker_t) ServeHTTP(writer http.ResponseWriter, req *http.Requ
 
 	// Check for user nonce.
 	userNonce := req.Header.Get("Cwf-User-Nonce")
-	if val.Nonce != userNonce {
+	if user.Nonce != userNonce {
 		http.Error(writer, "Wrong UUID", http.StatusForbidden)
 		return
 	}

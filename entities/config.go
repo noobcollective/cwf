@@ -1,10 +1,15 @@
 package entities
 
-// Typedef for the yaml config object.
-type Config_t struct {
-	MotherShipIP   string `toml:"motherShipIP"`
-	MotherShipPort string `toml:"motherShipPort"`
-	MotherShipSSL  bool   `toml:"motherShipSSL"`
+// Typedef for the toml config objects.
+type Mothership struct {
+	IP    string `toml:"ip"`
+	Port  string `toml:"port"`
+	SSL   bool   `toml:"ssl"`
+}
+
+type Client struct {
+	User  string `toml:"user_name"`
+	ID    string `toml:"user_id"`
 }
 
 type ServerConfig_t struct {
@@ -16,6 +21,7 @@ type ServerConfig_t struct {
 
 type ServerAccount_t struct {
 	UserName string `toml:"userName"`
+	// FIXME: change to "ID"
 	Nonce    string `toml:"nonce"`
 	Registed bool   `toml:"registered"`
 }
@@ -24,6 +30,11 @@ type ServerToml_t struct {
 	Server ServerConfig_t `toml:"server"`
 }
 
-// Global variable used as shared variable between main,serve and client
-var MotherShip Config_t
+type ClientConfig_t struct {
+	Mothership Mothership `toml:"mothership"`
+	Client     Client     `toml:"client"`
+}
+
+// Global variable used as shared variable server
+// FIXME: Move to server package
 var ServerConfig ServerToml_t
