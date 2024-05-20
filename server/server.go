@@ -232,6 +232,65 @@ func handleDeleteContent(writer http.ResponseWriter, req *http.Request) {
 	writeRes(writer, http.StatusOK, msg)
 }
 
+// handleRegisterAccount for exchanging nonce with client
+func handleAccountRegister(writer http.ResponseWriter, req *http.Request) {
+	zap.L().Info("Got GET on /cwf/register")
+
+	username := req.PathValue("username")
+	if username == "" {
+		zap.L().Info("No  username provided!")
+		writeRes(writer, http.StatusBadRequest, "No username provided!")
+		return
+	}
+
+	val, ok := ServerUsers[username]
+	if !ok {
+		zap.L().Error("Unknown user: " + username)
+		http.Error(writer, "Unknown user: "+username, http.StatusBadRequest)
+		return
+	}
+
+	if val.Registed {
+		zap.L().Info("User already registered")
+		writeRes(writer, http.StatusBadRequest, "User already registered")
+		return
+	}
+
+	file, err := utilities.LoadConfig()
+	if err != nil {
+		return
+	}
+
+	err = toml.Unmarshal(file, &entities.ServerConfig)
+	if err != nil {
+		zap.L().Error("Error deconding toml err: " + err.Error())
+		return
+	}
+
+	for i := range entities.ServerConfig.Server.Accounts {
+		user := &entities.ServerConfig.Server.Accounts[i]
+		if user.UserName == username {
+			user.Registed = true
+			ServerUsers[user.UserName] = *user
+			break
+		}
+	}
+
+	tomlContent, err := toml.Marshal(entities.ServerConfig)
+	if err != nil {
+		zap.L().Error("Failed toml marshal")
+		return
+	}
+
+	err = utilities.WriteConfig(tomlContent)
+	if err != nil {
+		return
+	}
+
+	// Returning uuid client must use this from now on
+	writeRes(writer, http.StatusOK, ServerUsers[username].Nonce)
+}
+
 // Function to return all files/directories in given query parameter
 // If no further pathname is provided we list files in root folder
 func handleListContent(writer http.ResponseWriter, req *http.Request) {
