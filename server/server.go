@@ -70,13 +70,13 @@ func initServer() bool {
 	for i := range entities.ServerConfig.Server.Accounts {
 		user := &entities.ServerConfig.Server.Accounts[i]
 		id := uuid.New()
-		if entities.ServerConfig.Server.Accounts[i].Registered {
-			ServerUsers[user.Name] = *user
+		if entities.ServerConfig.Server.Accounts[i].Registed {
+			ServerUsers[user.UserName] = *user
 			continue
 		}
 
 		entities.ServerConfig.Server.Accounts[i].Nonce = id.String()
-		ServerUsers[user.Name] = *user
+		ServerUsers[user.UserName] = *user
 	}
 
 	tomlContent, err := toml.Marshal(entities.ServerConfig)

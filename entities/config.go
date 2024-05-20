@@ -20,10 +20,10 @@ type ServerConfig_t struct {
 }
 
 type ServerAccount_t struct {
-	Name string `toml:"userName"`
+	UserName string `toml:"userName"`
 	// FIXME: change to "ID"
 	Nonce    string `toml:"nonce"`
-	Registered bool   `toml:"registered"`
+	Registed bool   `toml:"registered"`
 }
 
 type ServerToml_t struct {
