@@ -12,22 +12,14 @@ type Client struct {
 	ID    string `toml:"user_id"`
 }
 
-type ServerConfig_t struct {
-	MotherShipIP   string            `toml:"motherShipIP"`
-	MotherShipPort string            `toml:"motherShipPort"`
-	MotherShipSSL  bool              `toml:"motherShipSSL"`
+type Server struct {
 	Accounts       []ServerAccount_t `toml:"accounts"`
 }
 
 type ServerAccount_t struct {
-	UserName string `toml:"userName"`
-	// FIXME: change to "ID"
-	Nonce    string `toml:"nonce"`
-	Registed bool   `toml:"registered"`
-}
-
-type ServerToml_t struct {
-	Server ServerConfig_t `toml:"server"`
+	Name       string `toml:"user_name"`
+	ID         string `toml:"id"`
+	Registered bool   `toml:"registered"`
 }
 
 type ClientConfig_t struct {
@@ -35,6 +27,6 @@ type ClientConfig_t struct {
 	Client     Client     `toml:"client"`
 }
 
-// Global variable used as shared variable server
-// FIXME: Move to server package
-var ServerConfig ServerToml_t
+type ServerConfig_t struct {
+	Server Server `toml:"server"`
+}
