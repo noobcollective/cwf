@@ -31,14 +31,14 @@ func initClient() bool {
 		return false
 	}
 
-	configFile, err := os.ReadFile(userHome + "/.config/cwf/config.toml")
+	configFile, err := utilities.LoadConfig(userHome + "/.config/cwf/config.toml")
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "No config file found! Check README for config example! Error <%v>\n", err)
 		return false
 	}
 
-	err = toml.Unmarshal(configFile, &config)
-	if err != nil {
+	defer configFile.Close()
+	if err := toml.NewDecoder(configFile).Decode(&config); err != nil {
 		fmt.Println("Config file could not be parsed")
 		return false
 	}
@@ -209,7 +209,7 @@ func registerUser() {
 	}
 
 	userHome, err := os.UserHomeDir()
-	configFile, err := os.OpenFile(userHome + "/.config/cwf/config.toml", os.O_WRONLY, 0644)
+	configFile, err := utilities.LoadConfig(userHome + "/.config/cwf/config.toml")
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error opening config file! Error <%v>\n", err)
 		return
