@@ -39,16 +39,20 @@ func initServer() bool {
 
 	// Load configuration file.
 	configPath = utilities.GetFlagValue[string]("config")
-	configFile, err := utilities.LoadConfig(configPath)
+	file, err := utilities.LoadConfig(configPath)
 	if err != nil {
-		zap.L().Error("Specified config file not found! Check README for config example! Error " + err.Error())
 		return false
 	}
 
-	defer configFile.Close()
 	zap.L().Info("Reading allowed users from config")
-	if err := toml.NewDecoder(configFile).Decode(&config); err != nil {
+	err = toml.Unmarshal(file, &config)
+	if err != nil {
 		zap.L().Error("Error deconding toml err: " + err.Error())
+		return false
+	}
+
+	if emptyValues, ok := validateConfig(); !ok {
+		fmt.Fprintf(os.Stderr, "Missing values in config: %s!\n", strings.Join(emptyValues, ", "))
 		return false
 	}
 
@@ -73,19 +77,13 @@ func initServer() bool {
 		users[user.Name] = *user
 	}
 
-	if config.General.SSL &&
-		(config.General.CertFile == "" || config.General.KeyFile == "") {
-		zap.L().Error("Can't serve with SSL enabled without certificate and key!")
-		return false
-	}
-
 	tomlContent, err := toml.Marshal(config)
 	if err != nil {
 		zap.L().Error("Failed to parse config into string.")
 		return false
 	}
 
-	err = utilities.WriteConfig(tomlContent, configFile)
+	err = utilities.WriteConfig(configPath, tomlContent)
 	return err == nil
 }
 
@@ -113,7 +111,7 @@ func StartServer() {
 
 	port = config.General.Port
 	zap.L().Info("Serving on Port: " + port)
-	if !config.General.SSL {
+	if !*config.General.SSL {
 		log.Fatal(http.ListenAndServe(":" + port, cwfChecker_t{mux}))
 	} else {
 		log.Fatal(http.ListenAndServeTLS(":" + port,
@@ -309,14 +307,13 @@ func handleAccountRegister(writer http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	configFile, err := utilities.LoadConfig(configPath)
+	file, err := utilities.LoadConfig(configPath)
 	if err != nil {
-		zap.L().Error("Specified config file not found! Check README for config example! Error " + err.Error())
 		return
 	}
 
-	defer configFile.Close()
-	if err := toml.NewEncoder(configFile).Encode(&config); err != nil {
+	err = toml.Unmarshal(file, &config)
+	if err != nil {
 		zap.L().Error("Error deconding toml err: " + err.Error())
 		return
 	}
@@ -337,8 +334,8 @@ func handleAccountRegister(writer http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if err := utilities.WriteConfig(tomlContent, configFile); err != nil {
-		writeRes(writer, http.StatusInternalServerError, "Error in handling registration request.")
+	err = utilities.WriteConfig(configPath, tomlContent)
+	if err != nil {
 		return
 	}
 
@@ -401,4 +398,36 @@ func (checker cwfChecker_t) ServeHTTP(writer http.ResponseWriter, req *http.Requ
 	}
 
 	checker.handler.ServeHTTP(writer, req)
+}
+
+// Checks if there are mising values in config file.
+// Returns empty fields and bool to check if config is valid.
+func validateConfig() ([]string, bool) {
+	var emptyValues []string
+
+	if config.General.Port == "" {
+		emptyValues = append(emptyValues, "Port")
+	}
+
+	if config.General.FilesDir == "" {
+		emptyValues = append(emptyValues, "FilesDir")
+	}
+
+	if config.General.SSL == nil {
+		emptyValues = append(emptyValues, "SSL")
+	} else if *config.General.SSL {
+		if config.General.CertsDir == "" {
+			emptyValues = append(emptyValues, "CertsDir")
+		}
+
+		if config.General.CertFile == "" {
+			emptyValues = append(emptyValues, "CertFile")
+		}
+
+		if config.General.KeyFile == "" {
+			emptyValues = append(emptyValues, "Keyfile")
+		}
+	}
+
+	return emptyValues, len(emptyValues) == 0
 }

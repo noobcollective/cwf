@@ -4,7 +4,7 @@ package entities
 type Mothership struct {
 	IP    string `toml:"ip"`
 	Port  string `toml:"port"`
-	SSL   bool   `toml:"ssl"`
+	SSL   *bool  `toml:"ssl,omitempty"`
 }
 
 type Client struct {
@@ -14,7 +14,7 @@ type Client struct {
 
 type Server struct {
 	Port     string `toml:"port"`
-	SSL      bool   `toml:"ssl"`
+	SSL      *bool  `toml:"ssl"`
 	FilesDir string `toml:"files_dir"`
 	CertsDir string `toml:"certs_dir"`
 	CertFile string `toml:"cert_file"`

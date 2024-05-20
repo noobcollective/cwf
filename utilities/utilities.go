@@ -21,21 +21,24 @@ func IsValidUUID(uuid string) bool {
 	return r.MatchString(uuid)
 }
 
-// Loads the given toml file.
-// Returns file pointer or error from reading.
-func LoadConfig(configPath string) (*os.File, error) {
-	file, err := os.OpenFile(configPath, os.O_RDWR, 0644)
+// Load Toml file
+// Returns byte slice of content
+func LoadConfig(path string) ([]byte, error) {
+	file, err := os.ReadFile(path)
 	if err != nil {
+		zap.L().Error("No config file found! Check README for config example! Error " + err.Error())
 		return nil, err
 	}
 
 	return file, nil
 }
 
-// Writes given content to file.
-// Returns err of write operation or nil.
-func WriteConfig(content []byte, file *os.File) error {
-	if _, err := file.WriteAt(content, 0); err != nil {
+// TODO dont hardcode paths
+// check filemode
+// Function to write to file content
+func WriteConfig(path string, content []byte) error {
+	err := os.WriteFile(path, content, 0644)
+	if err != nil {
 		zap.L().Info("Failed writing to toml file. Err: " + err.Error())
 		return err
 	}

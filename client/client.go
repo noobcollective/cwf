@@ -4,14 +4,15 @@ package client
 
 import (
 	"bytes"
-	"errors"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"cwf/entities"
@@ -31,36 +32,31 @@ func initClient() bool {
 		return false
 	}
 
-	configFile, err := utilities.LoadConfig(userHome + "/.config/cwf/config.toml")
+	configContent, err := os.ReadFile(userHome + "/.config/cwf/config.toml")
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "No config file found! Check README for config example! Error <%v>\n", err)
+		fmt.Fprintf(os.Stderr, "No config file found! Check README for config example!\n")
 		return false
 	}
 
-	defer configFile.Close()
-	if err := toml.NewDecoder(configFile).Decode(&config); err != nil {
+	if err := toml.Unmarshal(configContent, &config); err != nil {
 		fmt.Println("Config file could not be parsed")
 		return false
 	}
 
-	if config.Mothership.IP == "" || config.Mothership.Port == "" {
-		fmt.Println("IP address, Port or CWF File directory is not provided")
-		return false
-	}
-
-	if config.Client.User == "" {
-		fmt.Println("No username provided in config file!")
+	if emptyValues, ok := validateConfig(); !ok {
+		fmt.Fprintf(os.Stderr, "Missing values in config: %s!\n", strings.Join(emptyValues, ", "))
 		return false
 	}
 
 	var cwfProtocol string = "http://"
-	if config.Mothership.SSL {
+	if *config.Mothership.SSL {
 		cwfProtocol = "https://"
 	}
 
 	baseURL = cwfProtocol + config.Mothership.IP + ":" + config.Mothership.Port + "/cwf/"
 	return true
 }
+
 
 // Start client and handle action types.
 func StartClient() {
@@ -80,6 +76,7 @@ func StartClient() {
 		getContent()
 	}
 }
+
 
 // Send content to server to save it encoded in specified file.
 func sendContent() {
@@ -111,6 +108,7 @@ func sendContent() {
 	fmt.Println(string(responseData))
 }
 
+
 // Get content of clipboard file.
 func getContent() {
 	res, err := makeRequest("GET", baseURL + "content/" + os.Args[1], nil)
@@ -139,6 +137,7 @@ func getContent() {
 	fmt.Println(string(bodyDecoded))
 }
 
+
 // Get a list from server.
 func listFiles() {
 	reqUrl := baseURL + "list/"
@@ -160,6 +159,7 @@ func listFiles() {
 
 	fmt.Println(string(responseData))
 }
+
 
 // Delete a filename from server.
 func deleteFile() {
@@ -183,15 +183,10 @@ func deleteFile() {
 	fmt.Println(string(responseData))
 }
 
+
 // Registers user with their name and stores the given UUID.
 func registerUser() {
-	userName := config.Client.User
-	if userName == "" {
-		fmt.Fprintf(os.Stderr, "No username provided!\n")
-		return
-	}
-
-	res, err := makeRequest("GET", baseURL + "register/" + userName, nil)
+	res, err := makeRequest("GET", baseURL + "register/" + config.Client.User, nil)
 	if err != nil {
 		return
 	}
@@ -209,21 +204,26 @@ func registerUser() {
 	}
 
 	userHome, err := os.UserHomeDir()
-	configFile, err := utilities.LoadConfig(userHome + "/.config/cwf/config.toml")
+	configFile, err := os.OpenFile(userHome + "/.config/cwf/config.toml", os.O_WRONLY, 0644)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error opening config file! Error <%v>\n", err)
 		return
 	}
 
-	defer configFile.Close()
 	config.Client.ID = string(responseData)
 	if err := toml.NewEncoder(configFile).Encode(config); err != nil {
 		fmt.Fprintf(os.Stderr, "Error saving UUID to config file! Error <%v>\n", err)
 		return
 	}
 
+	if err = configFile.Close(); err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to close config file: <%v>", err)
+		return
+	}
+
 	fmt.Println("Successfully registered! Have fun using CWF!")
 }
+
 
 // Creates a request object and adds default headers.
 // Returns (*http.Response, nil) when successful - (nil, error) otherwise.
@@ -238,9 +238,7 @@ func makeRequest(method string, url string, body io.Reader) (*http.Response, err
 		},
 	}
 
-	userName := config.Client.User
-	userID := config.Client.ID
-	if err := checkUserStatus(userID); err != nil {
+	if err := checkUserStatus(); err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		return nil, err
 	}
@@ -254,8 +252,8 @@ func makeRequest(method string, url string, body io.Reader) (*http.Response, err
 	// Add needed headers
 	req.Header.Set("Cwf-Cli-Req", "true")
 	req.Header.Set("Cwf-Cli-Version", "0.3.1")
-	req.Header.Set("Cwf-User-Name", userName)
-	req.Header.Set("Cwf-User-Id", userID)
+	req.Header.Set("Cwf-User-Name", config.Client.User)
+	req.Header.Set("Cwf-User-Id", config.Client.ID)
 
 	res, err := client.Do(req)
 	if err != nil {
@@ -266,21 +264,48 @@ func makeRequest(method string, url string, body io.Reader) (*http.Response, err
 	return res, nil
 }
 
+
 // Checks if some input is given via pipe and returns result.
 func fromPipe() bool {
 	content, _ := os.Stdin.Stat()
 	return content.Mode()&os.ModeCharDevice == 0
 }
 
+
 // Checks status of registration for current user.
 // Return nil | error do be handled from caller.
-func checkUserStatus(userID string) error {
+func checkUserStatus() error {
 	var err error = nil
 	var isRegister bool = utilities.GetFlagValue[bool]("r")
 
-	if !isRegister && userID == "" {
+	if !isRegister && config.Client.ID == "" {
 		err = errors.New("ID not found! Try running with '-r' flag to register on server!")
 	}
 
 	return err
+}
+
+
+// Checks if there are mising values in config file.
+// Returns empty fields and bool to check if config is valid.
+func validateConfig() ([]string, bool) {
+	var emptyValues []string
+
+	if config.Mothership.IP == "" {
+		emptyValues = append(emptyValues, "IP")
+	}
+
+	if config.Mothership.Port == "" {
+		emptyValues = append(emptyValues, "Port")
+	}
+
+	if config.Mothership.SSL == nil {
+		emptyValues = append(emptyValues, "SSL")
+	}
+
+	if config.Client.User == "" {
+		emptyValues = append(emptyValues, "User")
+	}
+
+	return emptyValues, len(emptyValues) == 0
 }
