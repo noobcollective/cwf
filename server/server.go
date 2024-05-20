@@ -271,10 +271,9 @@ func handleAccountRegister(writer http.ResponseWriter, req *http.Request) {
 		user := &entities.ServerConfig.Server.Accounts[i]
 		if user.UserName == username {
 			user.Registed = true
+			ServerUsers[user.UserName] = *user
 			break
 		}
-
-		ServerUsers[user.UserName] = *user
 	}
 
 	tomlContent, err := toml.Marshal(entities.ServerConfig)
