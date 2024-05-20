@@ -1,10 +1,13 @@
 package entities
 
 // Typedef for the toml config objects.
-type ClientConfig_t struct {
+type Mothership struct {
 	IP    string `toml:"ip"`
 	Port  string `toml:"port"`
 	SSL   bool   `toml:"ssl"`
+}
+
+type Client struct {
 	User  string `toml:"user_name"`
 	ID    string `toml:"user_id"`
 }
@@ -27,9 +30,9 @@ type ServerToml_t struct {
 	Server ServerConfig_t `toml:"server"`
 }
 
-type ClientToml_t struct {
-	Mothership ClientConfig_t `toml:"mothership"`
-	Client     ClientConfig_t `toml:"client"`
+type ClientConfig_t struct {
+	Mothership Mothership `toml:"mothership"`
+	Client     Client     `toml:"client"`
 }
 
 // Global variable used as shared variable server

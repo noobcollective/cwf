@@ -21,7 +21,7 @@ import (
 )
 
 var baseURL string
-var config entities.ClientToml_t
+var config entities.ClientConfig_t
 
 // Init client
 func initClient() bool {
