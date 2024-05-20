@@ -18,12 +18,19 @@ brew install noobcollective/tap/cwf
 ```
 
 ## Example config
-```yaml
----
- motherShipIP: 127.0.0.1
- motherShipPort: 8787
- motherShipSSL: true  <- false to disable HTTPS
+```toml
+[mothership]
+ip = '127.0.0.1'
+port = '8787'
+ssl = true
+
+[client]
+user_name = 'MyLittleUsername'
+user_id = '<id_from_server>'
 ```
+
+`user_id` will be automatically generated when registering user the first time. \
+Have a look at the [registration command](#register-user-on-server).
 
 ## Client Usage
 ### Send content to server and save it in a single file.
@@ -86,6 +93,19 @@ cwf -l testdir
 Type    Name         Modified
 File   testfile.cwf 2006-01-02 15:04:05
 ```
+
+### Register user on server
+For a more secure environment, we decided to implement user accounts server side. Therefore you'll need to register
+your user when using `cwf` the first time. Be sure there is a `user_name` set in your config file and it's the same on the server.
+
+```
+cwf -r
+```
+```
+Successfully registered! Have fun using CWF!
+```
+
+This will automatically generate a user id for you.
 
 ## Docker Image
 - Get the image with:
