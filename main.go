@@ -29,7 +29,7 @@ var (
 var (
 	list     = flag.Bool("l", false, "List files.")
 	deletion = flag.Bool("d", false, "Delete file.")
-	register = flag.String("r", "", "Register a user on server for the first time.")
+	register = flag.Bool("r", false, "Register a user on server for the first time.")
 )
 
 func main() {
