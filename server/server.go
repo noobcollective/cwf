@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"os"
 	"sort"
-	"strconv"
 	"strings"
 
 	"cwf/entities"
@@ -23,11 +22,11 @@ import (
 const file_suffix string = ".cwf"
 
 var filesDir string
-var port int
+var configPath string
 var config entities.ServerConfig_t
 
 // Global Variabel to hold users in memory
-var users = make(map[string]entities.ServerAccount_t)
+var users = make(map[string]entities.Account_t)
 
 type cwfChecker_t struct {
 	handler http.Handler
@@ -37,23 +36,9 @@ type cwfChecker_t struct {
 func initServer() bool {
 	zap.L().Info("************************* START LOGGING *************************")
 
-	filesDir = utilities.GetFlagValue[string]("filesdir")
-	port = utilities.GetFlagValue[int]("port")
-
-	if _, err := os.Stat(filesDir); os.IsNotExist(err) {
-		if err := os.MkdirAll(filesDir, 0777); err != nil {
-			zap.L().Error(err.Error())
-			return false
-		}
-	}
-
-	if utilities.GetFlagValue[bool]("https") &&
-		(utilities.GetFlagValue[string]("certfile") == "" || utilities.GetFlagValue[string]("keyfile") == "") {
-		zap.L().Error("Can't serve with SSL enabled without certificate and key!")
-		return false
-	}
-
-	file, err := utilities.LoadConfig()
+	// Load configuration file.
+	configPath = utilities.GetFlagValue[string]("config")
+	file, err := utilities.LoadConfig(configPath)
 	if err != nil {
 		return false
 	}
@@ -65,16 +50,29 @@ func initServer() bool {
 		return false
 	}
 
+	if emptyValues, ok := validateConfig(); !ok {
+		fmt.Fprintf(os.Stderr, "Missing values in config: %s!\n", strings.Join(emptyValues, ", "))
+		return false
+	}
+
+	filesDir = config.General.FilesDir
+	if _, err := os.Stat(filesDir); os.IsNotExist(err) {
+		if err := os.MkdirAll(filesDir, 0777); err != nil {
+			zap.L().Error(err.Error())
+			return false
+		}
+	}
+
 	zap.L().Info("Generating UUID's for Users")
-	for i := range config.Server.Accounts {
-		user := &config.Server.Accounts[i]
+	for i := range config.Accounts {
+		user := &config.Accounts[i]
 		id := uuid.New()
-		if config.Server.Accounts[i].Registered {
+		if config.Accounts[i].Registered {
 			users[user.Name] = *user
 			continue
 		}
 
-		config.Server.Accounts[i].ID = id.String()
+		config.Accounts[i].ID = id.String()
 		users[user.Name] = *user
 	}
 
@@ -84,7 +82,7 @@ func initServer() bool {
 		return false
 	}
 
-	err = utilities.WriteConfig(tomlContent)
+	err = utilities.WriteConfig(configPath, tomlContent)
 	return err == nil
 }
 
@@ -96,9 +94,9 @@ func StartServer() {
 
 	zap.L().Info("Welcome to CopyWithFriends on your Server!")
 
-	certsDir := utilities.GetFlagValue[string]("certsdir")
-	certPath := certsDir + utilities.GetFlagValue[string]("certfile")
-	keyPath := certsDir + utilities.GetFlagValue[string]("keyfile")
+	var certsDir string = config.General.CertsDir
+	var certPath string = certsDir + config.General.CertFile
+	var keyPath string = certsDir + config.General.KeyFile
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /cwf/content/{pathname...}", handleGetContent)
@@ -110,11 +108,12 @@ func StartServer() {
 	// Handler for 404
 	mux.HandleFunc("/", handleNotFound)
 
-	zap.L().Info("Serving on Port: " + strconv.Itoa(port))
-	if !utilities.GetFlagValue[bool]("https") {
-		log.Fatal(http.ListenAndServe(":" + fmt.Sprint(port), cwfChecker_t{mux}))
+	var port string = config.General.Port
+	zap.L().Info("Serving on Port: " + port)
+	if !*config.General.SSL {
+		log.Fatal(http.ListenAndServe(":" + port, cwfChecker_t{mux}))
 	} else {
-		log.Fatal(http.ListenAndServeTLS(":" + fmt.Sprint(port),
+		log.Fatal(http.ListenAndServeTLS(":" + port,
 			certPath, keyPath, cwfChecker_t{mux}))
 	}
 
@@ -307,7 +306,7 @@ func handleAccountRegister(writer http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	file, err := utilities.LoadConfig()
+	file, err := utilities.LoadConfig(configPath)
 	if err != nil {
 		return
 	}
@@ -318,8 +317,8 @@ func handleAccountRegister(writer http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	for i := range config.Server.Accounts {
-		user := &config.Server.Accounts[i]
+	for i := range config.Accounts {
+		user := &config.Accounts[i]
 		if user.Name == username {
 			user.Registered = true
 			users[user.Name] = *user
@@ -330,10 +329,11 @@ func handleAccountRegister(writer http.ResponseWriter, req *http.Request) {
 	tomlContent, err := toml.Marshal(config)
 	if err != nil {
 		zap.L().Error("Failed toml marshal")
+		writeRes(writer, http.StatusInternalServerError, "Error in handling registration request.")
 		return
 	}
 
-	err = utilities.WriteConfig(tomlContent)
+	err = utilities.WriteConfig(configPath, tomlContent)
 	if err != nil {
 		return
 	}
@@ -397,4 +397,36 @@ func (checker cwfChecker_t) ServeHTTP(writer http.ResponseWriter, req *http.Requ
 	}
 
 	checker.handler.ServeHTTP(writer, req)
+}
+
+// Checks if there are mising values in config file.
+// Returns empty fields and bool to check if config is valid.
+func validateConfig() ([]string, bool) {
+	var emptyValues []string
+
+	if config.General.Port == "" {
+		emptyValues = append(emptyValues, "Port")
+	}
+
+	if config.General.FilesDir == "" {
+		emptyValues = append(emptyValues, "FilesDir")
+	}
+
+	if config.General.SSL == nil {
+		emptyValues = append(emptyValues, "SSL")
+	} else if *config.General.SSL {
+		if config.General.CertsDir == "" {
+			emptyValues = append(emptyValues, "CertsDir")
+		}
+
+		if config.General.CertFile == "" {
+			emptyValues = append(emptyValues, "CertFile")
+		}
+
+		if config.General.KeyFile == "" {
+			emptyValues = append(emptyValues, "Keyfile")
+		}
+	}
+
+	return emptyValues, len(emptyValues) == 0
 }
