@@ -381,8 +381,8 @@ func (checker cwfChecker_t) ServeHTTP(writer http.ResponseWriter, req *http.Requ
 	}
 
 	// Check for user ID.
-	cliName := req.Header.Get("Cwf-User-Name")
-	user, ok := users[cliName]
+	userName := req.Header.Get("Cwf-User-Name")
+	user, ok := users[userName]
 	if !ok {
 		zap.L().Warn("User not found! Please register")
 		http.Error(writer, "User not found! Please register ", http.StatusForbidden)
