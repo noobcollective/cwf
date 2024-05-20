@@ -255,8 +255,7 @@ func makeRequest(method string, url string, body io.Reader) (*http.Response, err
 	req.Header.Set("Cwf-Cli-Req", "true")
 	req.Header.Set("Cwf-Cli-Version", "0.3.1")
 	req.Header.Set("Cwf-User-Name", userName)
-	// FIXME: Change to "Cwf-User-ID" when server is ready.
-	req.Header.Set("Cwf-User-Nonce", userID)
+	req.Header.Set("Cwf-User-Id", userID)
 
 	res, err := client.Do(req)
 	if err != nil {

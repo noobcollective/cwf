@@ -23,8 +23,6 @@ var (
 	version     string
 )
 
-// TODO: Set port and filesDir to shared variables (via config - but where?).
-
 // Client flags
 var (
 	list     = flag.Bool("l", false, "List files.")

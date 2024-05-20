@@ -24,9 +24,10 @@ const file_suffix string = ".cwf"
 
 var filesDir string
 var port int
+var config entities.ServerConfig_t
 
 // Global Variabel to hold users in memory
-var ServerUsers = make(map[string]entities.ServerAccount_t)
+var users = make(map[string]entities.ServerAccount_t)
 
 type cwfChecker_t struct {
 	handler http.Handler
@@ -34,8 +35,6 @@ type cwfChecker_t struct {
 
 // Init server
 func initServer() bool {
-	zap.L().Info("************************* START LOGGING *************************")
-	zap.L().Info("************************* START LOGGING *************************")
 	zap.L().Info("************************* START LOGGING *************************")
 
 	filesDir = utilities.GetFlagValue[string]("filesdir")
@@ -60,33 +59,32 @@ func initServer() bool {
 	}
 
 	zap.L().Info("Reading allowed users from config")
-	err = toml.Unmarshal(file, &entities.ServerConfig)
+	err = toml.Unmarshal(file, &config)
 	if err != nil {
 		zap.L().Error("Error deconding toml err: " + err.Error())
 		return false
 	}
 
 	zap.L().Info("Generating UUID's for Users")
-	for i := range entities.ServerConfig.Server.Accounts {
-		user := &entities.ServerConfig.Server.Accounts[i]
+	for i := range config.Server.Accounts {
+		user := &config.Server.Accounts[i]
 		id := uuid.New()
-		if entities.ServerConfig.Server.Accounts[i].Registed {
-			ServerUsers[user.UserName] = *user
+		if config.Server.Accounts[i].Registered {
+			users[user.Name] = *user
 			continue
 		}
 
-		entities.ServerConfig.Server.Accounts[i].Nonce = id.String()
-		ServerUsers[user.UserName] = *user
+		config.Server.Accounts[i].ID = id.String()
+		users[user.Name] = *user
 	}
 
-	tomlContent, err := toml.Marshal(entities.ServerConfig)
+	tomlContent, err := toml.Marshal(config)
 	if err != nil {
 		zap.L().Error("Failed to parse config into string.")
 		return false
 	}
 
 	err = utilities.WriteConfig(tomlContent)
-
 	return err == nil
 }
 
@@ -232,65 +230,6 @@ func handleDeleteContent(writer http.ResponseWriter, req *http.Request) {
 	writeRes(writer, http.StatusOK, msg)
 }
 
-// handleRegisterAccount for exchanging nonce with client
-func handleAccountRegister(writer http.ResponseWriter, req *http.Request) {
-	zap.L().Info("Got GET on /cwf/register")
-
-	username := req.PathValue("username")
-	if username == "" {
-		zap.L().Info("No  username provided!")
-		writeRes(writer, http.StatusBadRequest, "No username provided!")
-		return
-	}
-
-	val, ok := ServerUsers[username]
-	if !ok {
-		zap.L().Error("Unknown user: " + username)
-		http.Error(writer, "Unknown user: "+username, http.StatusBadRequest)
-		return
-	}
-
-	if val.Registed {
-		zap.L().Info("User already registered")
-		writeRes(writer, http.StatusBadRequest, "User already registered")
-		return
-	}
-
-	file, err := utilities.LoadConfig()
-	if err != nil {
-		return
-	}
-
-	err = toml.Unmarshal(file, &entities.ServerConfig)
-	if err != nil {
-		zap.L().Error("Error deconding toml err: " + err.Error())
-		return
-	}
-
-	for i := range entities.ServerConfig.Server.Accounts {
-		user := &entities.ServerConfig.Server.Accounts[i]
-		if user.UserName == username {
-			user.Registed = true
-			ServerUsers[user.UserName] = *user
-			break
-		}
-	}
-
-	tomlContent, err := toml.Marshal(entities.ServerConfig)
-	if err != nil {
-		zap.L().Error("Failed toml marshal")
-		return
-	}
-
-	err = utilities.WriteConfig(tomlContent)
-	if err != nil {
-		return
-	}
-
-	// Returning uuid client must use this from now on
-	writeRes(writer, http.StatusOK, ServerUsers[username].Nonce)
-}
-
 // Function to return all files/directories in given query parameter
 // If no further pathname is provided we list files in root folder
 func handleListContent(writer http.ResponseWriter, req *http.Request) {
@@ -344,6 +283,65 @@ func handleListContent(writer http.ResponseWriter, req *http.Request) {
 	writeRes(writer, http.StatusOK, response)
 }
 
+// handleRegisterAccount for exchanging ID with client
+func handleAccountRegister(writer http.ResponseWriter, req *http.Request) {
+	zap.L().Info("Got GET on /cwf/register")
+
+	username := req.PathValue("username")
+	if username == "" {
+		zap.L().Info("No  username provided!")
+		writeRes(writer, http.StatusBadRequest, "No username provided!")
+		return
+	}
+
+	val, ok := users[username]
+	if !ok {
+		zap.L().Error("Unknown user: " + username)
+		http.Error(writer, "Unknown user: "+username, http.StatusBadRequest)
+		return
+	}
+
+	if val.Registered {
+		zap.L().Info("User already registered")
+		writeRes(writer, http.StatusBadRequest, "User already registered")
+		return
+	}
+
+	file, err := utilities.LoadConfig()
+	if err != nil {
+		return
+	}
+
+	err = toml.Unmarshal(file, &config)
+	if err != nil {
+		zap.L().Error("Error deconding toml err: " + err.Error())
+		return
+	}
+
+	for i := range config.Server.Accounts {
+		user := &config.Server.Accounts[i]
+		if user.Name == username {
+			user.Registered = true
+			users[user.Name] = *user
+			break
+		}
+	}
+
+	tomlContent, err := toml.Marshal(config)
+	if err != nil {
+		zap.L().Error("Failed toml marshal")
+		return
+	}
+
+	err = utilities.WriteConfig(tomlContent)
+	if err != nil {
+		return
+	}
+
+	// Returning uuid client must use this from now on
+	writeRes(writer, http.StatusOK, users[username].ID)
+}
+
 // Default handler for 404 pages
 func handleNotFound(writer http.ResponseWriter, req *http.Request) {
 	zap.L().Warn("User called Endpoint: '" + req.URL.String() + "'!")
@@ -382,19 +380,19 @@ func (checker cwfChecker_t) ServeHTTP(writer http.ResponseWriter, req *http.Requ
 		return
 	}
 
-	// Check for user nonce.
-	cliUserName := req.Header.Get("Cwf-User-Name")
-	user, ok := ServerUsers[cliUserName]
+	// Check for user ID.
+	cliName := req.Header.Get("Cwf-User-Name")
+	user, ok := users[cliName]
 	if !ok {
 		zap.L().Warn("User not found! Please register")
 		http.Error(writer, "User not found! Please register ", http.StatusForbidden)
 		return
 	}
 
-	// Check for user nonce.
-	userNonce := req.Header.Get("Cwf-User-Nonce")
-	if user.Nonce != userNonce {
-		http.Error(writer, "Wrong UUID", http.StatusForbidden)
+	// Check for user ID.
+	userID := req.Header.Get("Cwf-User-Id")
+	if user.ID != userID {
+		http.Error(writer, "Wrong ID", http.StatusForbidden)
 		return
 	}
 
