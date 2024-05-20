@@ -10,17 +10,16 @@ import (
 	"go.uber.org/zap"
 )
 
+// General variables & flags.
+var (
+	version string
+	showVersion = flag.Bool("version", false, "Prints the program version")
+)
+
 // Server flags
 var (
-	asDaemon    = flag.Bool("serve", false, "Start as daemon.")
-	filesDir    = flag.String("filesdir", "/tmp/cwf/", "Directory to store cwf files.")
-	port        = flag.Int("port", 8787, "Port to serve on.")
-	https       = flag.Bool("https", false, "Serve with SSL/TLS.")
-	showVersion = flag.Bool("version", false, "Prints the program version")
-	certsDir    = flag.String("certsdir", "/etc/crypts/", "Path where the SSL certificate and key are located.")
-	certFile    = flag.String("certfile", "", "Filename of the SSL certificate.")
-	keyFile     = flag.String("keyfile", "", "Filename of the SSL key.")
-	version     string
+	startServer = flag.Bool("serve", false, "Start the cwf server.")
+	configPath  = flag.String("config", "/etc/cwf/config.toml", "Path to config file for server usage.")
 )
 
 // Client flags
@@ -43,7 +42,7 @@ func main() {
 		return
 	}
 
-	if !*asDaemon {
+	if !*startServer {
 		client.StartClient()
 		return
 	}

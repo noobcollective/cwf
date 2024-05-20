@@ -21,36 +21,21 @@ func IsValidUUID(uuid string) bool {
 	return r.MatchString(uuid)
 }
 
-// Load Toml file
-// Returns byte slice of content
-func LoadConfig() ([]byte, error) {
-	usrHome, err := os.UserHomeDir()
+// Loads the given toml file.
+// Returns file pointer or error from reading.
+func LoadConfig(configPath string) (*os.File, error) {
+	file, err := os.OpenFile(configPath, os.O_RDWR, 0644)
 	if err != nil {
-		zap.L().Error("Could not retrieve home directory!")
-		return nil, err
-	}
-
-	file, err := os.ReadFile(usrHome + "/.config/cwf/serverConfig.toml")
-	if err != nil {
-		zap.L().Error("No config file found! Check README for config example! Error " + err.Error())
 		return nil, err
 	}
 
 	return file, nil
 }
 
-// TODO dont hardcode paths
-// check filemode
-// Function to write to file content
-func WriteConfig(content []byte) error {
-	usrHome, err := os.UserHomeDir()
-	if err != nil {
-		zap.L().Error("Could not retrieve home directory!")
-		return err
-	}
-
-	err = os.WriteFile(usrHome+"/.config/cwf/serverConfig.toml", content, 0644)
-	if err != nil {
+// Writes given content to file.
+// Returns err of write operation or nil.
+func WriteConfig(content []byte, file *os.File) error {
+	if _, err := file.WriteAt(content, 0); err != nil {
 		zap.L().Info("Failed writing to toml file. Err: " + err.Error())
 		return err
 	}

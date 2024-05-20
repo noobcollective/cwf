@@ -13,10 +13,15 @@ type Client struct {
 }
 
 type Server struct {
-	Accounts       []ServerAccount_t `toml:"accounts"`
+	Port     string `toml:"port"`
+	SSL      bool   `toml:"ssl"`
+	FilesDir string `toml:"files_dir"`
+	CertsDir string `toml:"certs_dir"`
+	CertFile string `toml:"cert_file"`
+	KeyFile  string `toml:"key_file"`
 }
 
-type ServerAccount_t struct {
+type Account_t struct {
 	Name       string `toml:"user_name"`
 	ID         string `toml:"id"`
 	Registered bool   `toml:"registered"`
@@ -28,5 +33,6 @@ type ClientConfig_t struct {
 }
 
 type ServerConfig_t struct {
-	Server Server `toml:"server"`
+	General  Server      `toml:"general"`
+	Accounts []Account_t `toml:"accounts"`
 }

@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"os"
 	"sort"
-	"strconv"
 	"strings"
 
 	"cwf/entities"
@@ -22,12 +21,13 @@ import (
 
 const file_suffix string = ".cwf"
 
+var port string
 var filesDir string
-var port int
+var configPath string
 var config entities.ServerConfig_t
 
 // Global Variabel to hold users in memory
-var users = make(map[string]entities.ServerAccount_t)
+var users = make(map[string]entities.Account_t)
 
 type cwfChecker_t struct {
 	handler http.Handler
@@ -37,9 +37,22 @@ type cwfChecker_t struct {
 func initServer() bool {
 	zap.L().Info("************************* START LOGGING *************************")
 
-	filesDir = utilities.GetFlagValue[string]("filesdir")
-	port = utilities.GetFlagValue[int]("port")
+	// Load configuration file.
+	configPath = utilities.GetFlagValue[string]("config")
+	configFile, err := utilities.LoadConfig(configPath)
+	if err != nil {
+		zap.L().Error("Specified config file not found! Check README for config example! Error " + err.Error())
+		return false
+	}
 
+	defer configFile.Close()
+	zap.L().Info("Reading allowed users from config")
+	if err := toml.NewDecoder(configFile).Decode(&config); err != nil {
+		zap.L().Error("Error deconding toml err: " + err.Error())
+		return false
+	}
+
+	filesDir = config.General.FilesDir
 	if _, err := os.Stat(filesDir); os.IsNotExist(err) {
 		if err := os.MkdirAll(filesDir, 0777); err != nil {
 			zap.L().Error(err.Error())
@@ -47,35 +60,23 @@ func initServer() bool {
 		}
 	}
 
-	if utilities.GetFlagValue[bool]("https") &&
-		(utilities.GetFlagValue[string]("certfile") == "" || utilities.GetFlagValue[string]("keyfile") == "") {
-		zap.L().Error("Can't serve with SSL enabled without certificate and key!")
-		return false
-	}
-
-	file, err := utilities.LoadConfig()
-	if err != nil {
-		return false
-	}
-
-	zap.L().Info("Reading allowed users from config")
-	err = toml.Unmarshal(file, &config)
-	if err != nil {
-		zap.L().Error("Error deconding toml err: " + err.Error())
-		return false
-	}
-
 	zap.L().Info("Generating UUID's for Users")
-	for i := range config.Server.Accounts {
-		user := &config.Server.Accounts[i]
+	for i := range config.Accounts {
+		user := &config.Accounts[i]
 		id := uuid.New()
-		if config.Server.Accounts[i].Registered {
+		if config.Accounts[i].Registered {
 			users[user.Name] = *user
 			continue
 		}
 
-		config.Server.Accounts[i].ID = id.String()
+		config.Accounts[i].ID = id.String()
 		users[user.Name] = *user
+	}
+
+	if config.General.SSL &&
+		(config.General.CertFile == "" || config.General.KeyFile == "") {
+		zap.L().Error("Can't serve with SSL enabled without certificate and key!")
+		return false
 	}
 
 	tomlContent, err := toml.Marshal(config)
@@ -84,7 +85,7 @@ func initServer() bool {
 		return false
 	}
 
-	err = utilities.WriteConfig(tomlContent)
+	err = utilities.WriteConfig(tomlContent, configFile)
 	return err == nil
 }
 
@@ -96,9 +97,9 @@ func StartServer() {
 
 	zap.L().Info("Welcome to CopyWithFriends on your Server!")
 
-	certsDir := utilities.GetFlagValue[string]("certsdir")
-	certPath := certsDir + utilities.GetFlagValue[string]("certfile")
-	keyPath := certsDir + utilities.GetFlagValue[string]("keyfile")
+	var certsDir string = config.General.CertsDir
+	var certPath string = certsDir + config.General.CertFile
+	var keyPath string = certsDir + config.General.KeyFile
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /cwf/content/{pathname...}", handleGetContent)
@@ -110,11 +111,12 @@ func StartServer() {
 	// Handler for 404
 	mux.HandleFunc("/", handleNotFound)
 
-	zap.L().Info("Serving on Port: " + strconv.Itoa(port))
-	if !utilities.GetFlagValue[bool]("https") {
-		log.Fatal(http.ListenAndServe(":" + fmt.Sprint(port), cwfChecker_t{mux}))
+	port = config.General.Port
+	zap.L().Info("Serving on Port: " + port)
+	if !config.General.SSL {
+		log.Fatal(http.ListenAndServe(":" + port, cwfChecker_t{mux}))
 	} else {
-		log.Fatal(http.ListenAndServeTLS(":" + fmt.Sprint(port),
+		log.Fatal(http.ListenAndServeTLS(":" + port,
 			certPath, keyPath, cwfChecker_t{mux}))
 	}
 
@@ -307,19 +309,20 @@ func handleAccountRegister(writer http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	file, err := utilities.LoadConfig()
+	configFile, err := utilities.LoadConfig(configPath)
 	if err != nil {
+		zap.L().Error("Specified config file not found! Check README for config example! Error " + err.Error())
 		return
 	}
 
-	err = toml.Unmarshal(file, &config)
-	if err != nil {
+	defer configFile.Close()
+	if err := toml.NewEncoder(configFile).Encode(&config); err != nil {
 		zap.L().Error("Error deconding toml err: " + err.Error())
 		return
 	}
 
-	for i := range config.Server.Accounts {
-		user := &config.Server.Accounts[i]
+	for i := range config.Accounts {
+		user := &config.Accounts[i]
 		if user.Name == username {
 			user.Registered = true
 			users[user.Name] = *user
@@ -330,11 +333,12 @@ func handleAccountRegister(writer http.ResponseWriter, req *http.Request) {
 	tomlContent, err := toml.Marshal(config)
 	if err != nil {
 		zap.L().Error("Failed toml marshal")
+		writeRes(writer, http.StatusInternalServerError, "Error in handling registration request.")
 		return
 	}
 
-	err = utilities.WriteConfig(tomlContent)
-	if err != nil {
+	if err := utilities.WriteConfig(tomlContent, configFile); err != nil {
+		writeRes(writer, http.StatusInternalServerError, "Error in handling registration request.")
 		return
 	}
 
