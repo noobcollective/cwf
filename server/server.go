@@ -21,7 +21,6 @@ import (
 
 const file_suffix string = ".cwf"
 
-var port string
 var filesDir string
 var configPath string
 var config entities.ServerConfig_t
@@ -109,7 +108,7 @@ func StartServer() {
 	// Handler for 404
 	mux.HandleFunc("/", handleNotFound)
 
-	port = config.General.Port
+	var port string = config.General.Port
 	zap.L().Info("Serving on Port: " + port)
 	if !*config.General.SSL {
 		log.Fatal(http.ListenAndServe(":" + port, cwfChecker_t{mux}))
