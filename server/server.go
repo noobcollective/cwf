@@ -344,66 +344,6 @@ func handleListContent(writer http.ResponseWriter, req *http.Request) {
 	writeRes(writer, http.StatusOK, response)
 }
 
-// handleRegisterAccount for exchanging nonce with client
-func handleAccountRegister(writer http.ResponseWriter, req *http.Request) {
-	zap.L().Info("Got GET on /register/")
-
-	username := req.PathValue("username")
-	if username == "" {
-		zap.L().Info("No  username provided!")
-		writeRes(writer, http.StatusBadRequest, "No username provided!")
-		return
-	}
-
-	user, ok := ServerUsers[username]
-	if !ok {
-		zap.L().Error("Unknown user: " + username)
-		http.Error(writer, "Unknown user: " + username, http.StatusBadRequest)
-		return
-	}
-
-	if user.Registered {
-		zap.L().Info("User already registered")
-		writeRes(writer, http.StatusBadRequest, "User already registered")
-		return
-	}
-
-	file, err := utilities.LoadConfig()
-	if err != nil {
-		return
-	}
-
-	err = toml.Unmarshal(file, &entities.ServerConfig)
-	if err != nil {
-		zap.L().Error("Error deconding toml err: " + err.Error())
-		return
-	}
-
-	for i := range entities.ServerConfig.Server.Accounts {
-		user := &entities.ServerConfig.Server.Accounts[i]
-		if user.Name == username {
-			user.Registered = true
-			break
-		}
-
-		ServerUsers[user.Name] = *user
-	}
-
-	tomlContent, err := toml.Marshal(entities.ServerConfig)
-	if err != nil {
-		zap.L().Error("Failed toml marshal")
-		return
-	}
-
-	err = utilities.WriteConfig(tomlContent)
-	if err != nil {
-		return
-	}
-
-	// Returning uuid client must use this from now on
-	writeRes(writer, http.StatusOK, ServerUsers[username].Nonce)
-}
-
 // Default handler for 404 pages
 func handleNotFound(writer http.ResponseWriter, req *http.Request) {
 	zap.L().Warn("User called Endpoint: '" + req.URL.String() + "'!")
