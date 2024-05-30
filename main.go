@@ -49,16 +49,9 @@ func main() {
 		return
 	}
 
-	usrHome, err := os.UserHomeDir()
-	if err != nil {
-		zap.L().Error("Could not retrieve home directory!")
-		return
-	}
-
-	// TODO: Check with iCulture whats best place for logs or move it as a flag or config file...
 	cfg := zap.NewProductionConfig()
 	cfg.OutputPaths = []string{
-		usrHome + "/.config/cwf/cwf.log",
+		"/var/log/cwf/cwf.log",
 	}
 
 	zap.ReplaceGlobals(zap.Must(cfg.Build()))
