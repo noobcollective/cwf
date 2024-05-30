@@ -135,7 +135,7 @@ registered = false
 ## Docker Image
 - Get the image with:
     ```bash
-    docker pull noobcollective/cwf
+    docker pull noobcollective/cwf-server
     ```
 - Start `cwf` with docker in HTTP Mode:
     ```bash
@@ -143,7 +143,7 @@ registered = false
         --name cwf-server \
         -p <host_port>:<container_port> \
         -v <volume_name>:<container_filesDir> \
-        -d noobcollective/cwf -serve
+        -d noobcollective/cwf-server -serve
     ```
 - Start `cwf` with docker in HTTPS Mode:
     ```bash
@@ -153,7 +153,7 @@ registered = false
         -v <host_config_path>:<container_config_path> \
         -v <volume_name>:<container_filesDir> \
         -v <container_ssl_certs_dir>:<host_ssl_certs_dir> \
-        -d noobcollective/cwf -serve
+        -d noobcollective/cwf-server -serve
     ```
 - `<container_port>`: Configurable via `-port` argument in cwf -> defaults to 8787.
 - `<container_config_path>`: Configurable via `-config` argument in cwf.

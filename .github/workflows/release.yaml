@@ -1,8 +1,10 @@
-name: Create Client Release
+name: Release client and docker
 permissions:
   contents: write
 on:
-  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
 
 jobs:
   release:
