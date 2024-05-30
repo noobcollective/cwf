@@ -150,18 +150,20 @@ registered = false
     docker run \
         --name cwf-server \
         -p <host_port>:<container_port> \
+        -v <host_config_path>:<container_config_path> \
         -v <volume_name>:<container_filesDir> \
         -v <container_ssl_certs_dir>:<host_ssl_certs_dir> \
-        -d noobcollective/cwf -serve -https -certfile <path_to_ssl_cert> -keyfile <path_to_ssl_key>
+        -d noobcollective/cwf -serve
     ```
-- `<container_port>`: Configurable via `-port` argument in cwf -> defaults to 8787
+- `<container_port>`: Configurable via `-port` argument in cwf -> defaults to 8787.
+- `<container_config_path>`: Configurable via `-config` argument in cwf.
 - `<volume_name>`: Name of the docker volume for persisting data.
-- `<container_filesDir>`: Configurable via `-filesDir` argument in cwf -> defaults to `/tmp/cwf/`
+- `<container_filesDir>`: Configurable via `files_dir` in config file -> defaults to `/tmp/cwf/`.
 
-When using the `-https` flag, you need to mount the directory where the SSL certificates are located on your host machine \
-and provide the names of your ssl certificate and key to `cwf` with the `-certfile` and `-keyfile` arguments.
+When `ssl` is set to `true` in your config, you need to mount the directory where the SSL certificates are located on your host machine \
+and set the paths of your ssl directory, certificate and key in your config.
 - `<host_ssl_certs_dir>`: Directory where the SSL certificates are located on your host machine.
-- `<container_ssl_certs_dir>`: Configurable via `-certsdir` argument in cwf -> defaults to `/etc/crypts`
+- `<container_ssl_certs_dir>`: Configurable in your config.
 
 ## Roadmap:
 - [ ] get size of files
