@@ -12,7 +12,7 @@ import (
 
 // General variables & flags.
 var (
-	version string
+	version string = "dev"
 	showVersion = flag.Bool("version", false, "Prints the program version")
 )
 
