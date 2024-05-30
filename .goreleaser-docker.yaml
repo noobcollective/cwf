@@ -6,18 +6,9 @@ builds:
     goarch:
       - amd64
 dockers:
-    id: cwf-server
-    ids:
-      - cwf-server
-    image_templates:
-      - "noobcollective/cwf-server:latest"
-      - "noobcollective/cwf-server:{{ .Tag }}"
-    skip_push: false
-    build_flag_templates:
-      - "--pull"
-      - "--label=org.opencontainers.image.created={{.Date}}"
-      - "--label=org.opencontainers.image.title={{.ProjectName}}"
-      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
-      - "--label=org.opencontainers.image.version={{.Version}}"
-      - "--build-arg=FOO={{.Env.Bar}}"
-      - "--platform=linux/amd64"
+  - id: cwf
+  - ids:
+    - cwf
+  - image_templates:
+    - "noobcollective/cwf-server:latest"
+    - "noobcollective/cwf-server:{{ .Tag }}"
