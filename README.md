@@ -152,7 +152,7 @@ registered = false
         -p <host_port>:<container_port> \
         -v <host_config_path>:<container_config_path> \
         -v <volume_name>:<container_filesDir> \
-        -v <container_ssl_certs_dir>:<host_ssl_certs_dir> \
+        -v <host_ssl_certs_dir>:<container_ssl_certs_dir> \
         -d noobcollective/cwf-server -serve
     ```
 - `<container_port>`: Configurable via `-port` argument in cwf -> defaults to 8787.
