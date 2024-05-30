@@ -26,3 +26,12 @@ brews:
     #   zsh_completion.install "completions/goreleaser.zsh" => "_goreleaser"
     #   fish_completion.install "completions/goreleaser.fish"
     #   man1.install "manpages/goreleaser.1.gz"
+dockers:
+  - id: cwf
+  - ids:
+    - cwf
+  - goos: linux
+  - goarch: amd64
+  - image_templates:
+    - "noobcollective/cwf-server:latest"
+    - "noobcollective/cwf-server:{{ .Tag }}"
