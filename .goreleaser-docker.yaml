@@ -6,9 +6,6 @@ builds:
     goarch:
       - amd64
 dockers:
-  - id: cwf
-  - ids:
-    - cwf
   - image_templates:
     - "noobcollective/cwf:latest"
     - "noobcollective/cwf:{{ .Tag }}"
