@@ -1,5 +1,4 @@
 package server
-
 // Package to start the CWF server and handle all actions.
 
 import (
@@ -21,6 +20,7 @@ import (
 
 const file_suffix string = ".cwf"
 
+var Version string
 var filesDir string
 var configPath string
 var config entities.ServerConfig_t
@@ -364,9 +364,9 @@ func (checker cwfChecker_t) ServeHTTP(writer http.ResponseWriter, req *http.Requ
 	}
 
 	// Match CWF version of server against client.
-	cliVersion := req.Header.Get("Cwf-Cli-Version")
-	if cliVersion == "" || cliVersion != "0.3.1" {
-		zap.L().Warn("Got version: " + cliVersion)
+	clientVersion := req.Header.Get("Cwf-Cli-Version")
+	if clientVersion == "" || clientVersion != Version {
+		zap.L().Warn("Got version: " + clientVersion)
 		http.Error(writer, "No version found or version mismatch!", http.StatusBadRequest)
 		return
 	}

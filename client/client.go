@@ -21,6 +21,7 @@ import (
 	"github.com/pelletier/go-toml/v2"
 )
 
+var Version string
 var baseURL string
 var config entities.ClientConfig_t
 
@@ -251,7 +252,7 @@ func makeRequest(method string, url string, body io.Reader) (*http.Response, err
 
 	// Add needed headers
 	req.Header.Set("Cwf-Cli-Req", "true")
-	req.Header.Set("Cwf-Cli-Version", "0.3.1")
+	req.Header.Set("Cwf-Cli-Version", Version)
 	req.Header.Set("Cwf-User-Name", config.Client.User)
 	req.Header.Set("Cwf-User-Id", config.Client.ID)
 

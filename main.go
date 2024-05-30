@@ -12,7 +12,7 @@ import (
 
 // General variables & flags.
 var (
-	version string
+	Version string
 	showVersion = flag.Bool("version", false, "Prints the program version")
 )
 
@@ -35,10 +35,12 @@ func main() {
 		return
 	}
 
+	client.Version = Version
+	server.Version = Version
 	flag.Parse()
 
 	if *showVersion {
-		fmt.Println("CWF Version:", version)
+		fmt.Println("CWF Version:", Version)
 		return
 	}
 
