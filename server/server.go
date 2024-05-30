@@ -34,8 +34,6 @@ type cwfChecker_t struct {
 
 // Init server
 func initServer() bool {
-	zap.L().Info("************************* START LOGGING *************************")
-
 	// Load configuration file.
 	configPath = utilities.GetFlagValue[string]("config")
 	file, err := utilities.LoadConfig(configPath)
