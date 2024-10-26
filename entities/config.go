@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	//"github.com/fsnotify/fsnotify"
+	"github.com/fsnotify/fsnotify"
 	"github.com/google/uuid"
 	"github.com/pelletier/go-toml/v2"
 	"go.uber.org/zap"
@@ -45,16 +45,21 @@ type ClientConfig_t struct {
 }
 
 type ServerConfig_t struct {
-	General  Server      `toml:"general"`
-	Accounts []Account_t `toml:"accounts"`
+	General       Server      `toml:"general"`
+	Accounts      []Account_t `toml:"accounts"`
+	configWatcher *fsnotify.Watcher
+	configPath    string
 }
 
 func (config *ServerConfig_t) InitConfig(filePath string, users map[string]Account_t) error {
 	// Reading config file, filtewatcher can be used after we check if read was ok
+	var backupConfig ServerConfig_t = *config
 	file, err := config.LoadConfig(filePath)
 	if err != nil {
 		return errors.New("Failed loading Config")
 	}
+
+	config.configPath = filePath
 
 	zap.L().Info("Reading allowed users from config")
 	err = toml.Unmarshal(file, &config)
@@ -98,6 +103,11 @@ func (config *ServerConfig_t) InitConfig(filePath string, users map[string]Accou
 	if err != nil {
 		zap.L().Error("Failed to parse config into string.")
 		return err
+	}
+
+	if config.equal(&backupConfig) {
+		zap.L().Info("No need to write to file, nothing changed.")
+		return nil
 	}
 
 	err = config.WriteConfig(filePath, tomlContent)
@@ -181,4 +191,68 @@ func (config *ServerConfig_t) validateConfig() ([]string, bool) {
 	}
 
 	return emptyValues, len(emptyValues) == 0
+}
+
+func (config *ServerConfig_t) ConfigWatcher(users map[string]Account_t) {
+	// Create new watcher.
+	var err error
+	config.configWatcher, err = fsnotify.NewWatcher()
+	watcher := config.configWatcher
+
+	if err != nil {
+		zap.L().Error("FSnotify " + err.Error())
+	}
+	defer watcher.Close()
+
+	// Start listening for events.
+	go func() {
+		for {
+			select {
+			case event, ok := <-watcher.Events:
+				if !ok {
+					return
+				}
+				if strings.Contains(event.String(), "serverConfig.toml") {
+					if err := config.InitConfig(config.configPath, users); err != nil {
+						zap.L().Error("Failed to update config: " + err.Error())
+					}
+				}
+
+			case err, ok := <-watcher.Errors:
+				if !ok {
+					return
+				}
+				zap.L().Error("FSnotify error:" + err.Error())
+			}
+		}
+	}()
+
+	// Add a path.
+	// AS desribed in fsnotify it is not recommended to watch only a specific file
+	err = watcher.Add("/Users/sandi/.config/cwf")
+	if err != nil {
+		zap.L().Error("FSnotify " + err.Error())
+	}
+
+	<-make(chan struct{})
+}
+
+func (config *ServerConfig_t) equal(backup *ServerConfig_t) bool {
+	if len(config.Accounts) != len(backup.Accounts) {
+		return false
+	}
+
+	if config.configPath != backup.configPath {
+		return false
+	}
+
+	for i := 0; i < len(config.Accounts); i++ {
+		bUser := backup.Accounts[i]
+		cUser := config.Accounts[i]
+		if cUser.ID != bUser.ID || cUser.Name != bUser.Name || cUser.Registered != bUser.Registered {
+			return false
+		}
+	}
+
+	return true
 }

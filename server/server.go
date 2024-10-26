@@ -36,6 +36,10 @@ type cwfChecker_t struct {
 func initServer() bool {
 	// Load configuration file.
 	configPath = utilities.GetFlagValue[string]("config")
+	if len(configPath) == 0 {
+		zap.L().Error("Please profived a config path. Example: ./cwf -serve -config PATH/TO/CONFIG")
+		return false
+	}
 
 	err := config.InitConfig(configPath, users)
 	if err != nil {
@@ -51,6 +55,9 @@ func StartServer() {
 	if !initServer() {
 		return
 	}
+
+	// Initialize filewatcher
+	go config.ConfigWatcher(users)
 
 	zap.L().Info("Welcome to CopyWithFriends on your Server!")
 
@@ -76,7 +83,6 @@ func StartServer() {
 		log.Fatal(http.ListenAndServeTLS(":"+port,
 			certPath, keyPath, cwfChecker_t{mux}))
 	}
-
 }
 
 // handleStdout is called on `GET` to return the saved content of a file.

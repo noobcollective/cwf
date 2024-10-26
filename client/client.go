@@ -58,7 +58,6 @@ func initClient() bool {
 	return true
 }
 
-
 // Start client and handle action types.
 func StartClient() {
 	if !initClient() {
@@ -78,7 +77,6 @@ func StartClient() {
 	}
 }
 
-
 // Send content to server to save it encoded in specified file.
 func sendContent() {
 	content, err := io.ReadAll(os.Stdin)
@@ -94,7 +92,7 @@ func sendContent() {
 		return
 	}
 
-	res, err := makeRequest("POST", baseURL + "content/" + os.Args[1], bytes.NewBuffer(body))
+	res, err := makeRequest("POST", baseURL+"content/"+os.Args[1], bytes.NewBuffer(body))
 	if err != nil {
 		return
 	}
@@ -109,10 +107,9 @@ func sendContent() {
 	fmt.Println(string(responseData))
 }
 
-
 // Get content of clipboard file.
 func getContent() {
-	res, err := makeRequest("GET", baseURL + "content/" + os.Args[1], nil)
+	res, err := makeRequest("GET", baseURL+"content/"+os.Args[1], nil)
 	if err != nil {
 		return
 	}
@@ -138,7 +135,6 @@ func getContent() {
 	fmt.Println(string(bodyDecoded))
 }
 
-
 // Get a list from server.
 func listFiles() {
 	reqUrl := baseURL + "list/"
@@ -161,7 +157,6 @@ func listFiles() {
 	fmt.Println(string(responseData))
 }
 
-
 // Delete a filename from server.
 func deleteFile() {
 	if len(os.Args) < 3 {
@@ -169,7 +164,7 @@ func deleteFile() {
 		return
 	}
 
-	res, err := makeRequest("DELETE", baseURL + "content/" + os.Args[2], nil)
+	res, err := makeRequest("DELETE", baseURL+"content/"+os.Args[2], nil)
 	if err != nil {
 		return
 	}
@@ -184,10 +179,9 @@ func deleteFile() {
 	fmt.Println(string(responseData))
 }
 
-
 // Registers user with their name and stores the given UUID.
 func registerUser() {
-	res, err := makeRequest("GET", baseURL + "register/" + config.Client.User, nil)
+	res, err := makeRequest("GET", baseURL+"register/"+config.Client.User, nil)
 	if err != nil {
 		return
 	}
@@ -205,7 +199,7 @@ func registerUser() {
 	}
 
 	userHome, err := os.UserHomeDir()
-	configFile, err := os.OpenFile(userHome + "/.config/cwf/config.toml", os.O_WRONLY, 0644)
+	configFile, err := os.OpenFile(userHome+"/.config/cwf/config.toml", os.O_WRONLY, 0644)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error opening config file! Error <%v>\n", err)
 		return
@@ -224,7 +218,6 @@ func registerUser() {
 
 	fmt.Println("Successfully registered! Have fun using CWF!")
 }
-
 
 // Creates a request object and adds default headers.
 // Returns (*http.Response, nil) when successful - (nil, error) otherwise.
@@ -265,13 +258,11 @@ func makeRequest(method string, url string, body io.Reader) (*http.Response, err
 	return res, nil
 }
 
-
 // Checks if some input is given via pipe and returns result.
 func fromPipe() bool {
 	content, _ := os.Stdin.Stat()
 	return content.Mode()&os.ModeCharDevice == 0
 }
-
 
 // Checks status of registration for current user.
 // Return nil | error do be handled from caller.
@@ -285,7 +276,6 @@ func checkUserStatus() error {
 
 	return err
 }
-
 
 // Checks if there are mising values in config file.
 // Returns empty fields and bool to check if config is valid.
