@@ -1,4 +1,5 @@
 package server
+
 // Package to start the CWF server and handle all actions.
 
 import (
@@ -61,6 +62,11 @@ func initServer() bool {
 		}
 	}
 
+	if len(config.Accounts) == 0 {
+		fmt.Fprintf(os.Stderr, "Aborting server initialization, no accounts provided")
+		return false
+	}
+
 	zap.L().Info("Generating UUID's for Users")
 	for i := range config.Accounts {
 		user := &config.Accounts[i]
@@ -109,9 +115,9 @@ func StartServer() {
 	var port string = config.General.Port
 	zap.L().Info("Serving on Port: " + port)
 	if !*config.General.SSL {
-		log.Fatal(http.ListenAndServe(":" + port, cwfChecker_t{mux}))
+		log.Fatal(http.ListenAndServe(":"+port, cwfChecker_t{mux}))
 	} else {
-		log.Fatal(http.ListenAndServeTLS(":" + port,
+		log.Fatal(http.ListenAndServeTLS(":"+port,
 			certPath, keyPath, cwfChecker_t{mux}))
 	}
 
@@ -180,7 +186,7 @@ func handlePostContent(writer http.ResponseWriter, req *http.Request) {
 		}
 
 		if _, err := os.Stat(filesDir + dirs[0]); os.IsNotExist(err) {
-			if err := os.Mkdir(filesDir + dirs[0], os.ModePerm); err != nil {
+			if err := os.Mkdir(filesDir+dirs[0], os.ModePerm); err != nil {
 				zap.L().Error("Error while creating new directory: " + err.Error())
 				http.Error(writer, err.Error(), http.StatusBadRequest)
 				return
@@ -188,13 +194,13 @@ func handlePostContent(writer http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	if err := os.WriteFile(filesDir + pathname + file_suffix, []byte(body.Content), 0644); err != nil {
+	if err := os.WriteFile(filesDir+pathname+file_suffix, []byte(body.Content), 0644); err != nil {
 		zap.L().Error("Error while creating/writing file! Error: " + err.Error())
 		http.Error(writer, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	writeRes(writer, http.StatusOK, "Saved to: " + pathname)
+	writeRes(writer, http.StatusOK, "Saved to: "+pathname)
 }
 
 // handleDelete is called on `DELETE` to clean the directory or file.
