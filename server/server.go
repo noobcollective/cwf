@@ -14,7 +14,6 @@ import (
 	"cwf/entities"
 	"cwf/utilities"
 
-	"github.com/google/uuid"
 	"github.com/pelletier/go-toml/v2"
 	"go.uber.org/zap"
 )
@@ -37,56 +36,13 @@ type cwfChecker_t struct {
 func initServer() bool {
 	// Load configuration file.
 	configPath = utilities.GetFlagValue[string]("config")
-	file, err := utilities.LoadConfig(configPath)
+
+	err := config.InitConfig(configPath, users)
 	if err != nil {
 		return false
 	}
 
-	zap.L().Info("Reading allowed users from config")
-	err = toml.Unmarshal(file, &config)
-	if err != nil {
-		zap.L().Error("Error deconding toml err: " + err.Error())
-		return false
-	}
-
-	if emptyValues, ok := validateConfig(); !ok {
-		fmt.Fprintf(os.Stderr, "Missing values in config: %s!\n", strings.Join(emptyValues, ", "))
-		return false
-	}
-
-	filesDir = config.General.FilesDir
-	if _, err := os.Stat(filesDir); os.IsNotExist(err) {
-		if err := os.MkdirAll(filesDir, 0777); err != nil {
-			zap.L().Error(err.Error())
-			return false
-		}
-	}
-
-	if len(config.Accounts) == 0 {
-		fmt.Fprintf(os.Stderr, "Aborting server initialization, no accounts provided")
-		return false
-	}
-
-	zap.L().Info("Generating UUID's for Users")
-	for i := range config.Accounts {
-		user := &config.Accounts[i]
-		id := uuid.New()
-		if config.Accounts[i].Registered {
-			users[user.Name] = *user
-			continue
-		}
-
-		config.Accounts[i].ID = id.String()
-		users[user.Name] = *user
-	}
-
-	tomlContent, err := toml.Marshal(config)
-	if err != nil {
-		zap.L().Error("Failed to parse config into string.")
-		return false
-	}
-
-	err = utilities.WriteConfig(configPath, tomlContent)
+	// Will use filewatcher after we write back to it
 	return err == nil
 }
 
@@ -310,7 +266,7 @@ func handleAccountRegister(writer http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	file, err := utilities.LoadConfig(configPath)
+	file, err := config.LoadConfig(configPath)
 	if err != nil {
 		return
 	}
@@ -337,7 +293,7 @@ func handleAccountRegister(writer http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	err = utilities.WriteConfig(configPath, tomlContent)
+	err = config.WriteConfig(configPath, tomlContent)
 	if err != nil {
 		return
 	}
