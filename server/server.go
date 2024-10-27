@@ -177,7 +177,6 @@ func handleDeleteContent(writer http.ResponseWriter, req *http.Request) {
 	var err error
 	var msg string
 
-	zap.L().Info("000000000000000000000000000000")
 	if strings.HasSuffix(target, "/") {
 		err = os.RemoveAll(target)
 		msg = "Deleted directory: " + strings.TrimSuffix(target, "/")
