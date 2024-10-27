@@ -48,7 +48,7 @@ type ServerConfig_t struct {
 	General       Server      `toml:"general"`
 	Accounts      []Account_t `toml:"accounts"`
 	configWatcher *fsnotify.Watcher
-	configPath    string
+	ConfigPath    string
 }
 
 func (config *ServerConfig_t) InitConfig(filePath string, users map[string]Account_t) error {
@@ -59,7 +59,7 @@ func (config *ServerConfig_t) InitConfig(filePath string, users map[string]Accou
 		return errors.New("Failed loading Config")
 	}
 
-	config.configPath = filePath
+	config.ConfigPath = filePath
 
 	zap.L().Info("Reading allowed users from config")
 	err = toml.Unmarshal(file, &config)
@@ -213,7 +213,7 @@ func (config *ServerConfig_t) ConfigWatcher(users map[string]Account_t) {
 					return
 				}
 				if strings.Contains(event.String(), "serverConfig.toml") {
-					if err := config.InitConfig(config.configPath, users); err != nil {
+					if err := config.InitConfig(config.ConfigPath, users); err != nil {
 						zap.L().Error("Failed to update config: " + err.Error())
 					}
 				}
@@ -242,7 +242,7 @@ func (config *ServerConfig_t) equal(backup *ServerConfig_t) bool {
 		return false
 	}
 
-	if config.configPath != backup.configPath {
+	if config.ConfigPath != backup.ConfigPath {
 		return false
 	}
 
