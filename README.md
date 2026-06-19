@@ -10,7 +10,7 @@ As of now we do **not recommend** sending sensitive data! Although the transport
 ## Installation
 We provide a homebrew package to install `cwf` as a binary. \
 It's totally possible to run the server with the binary. \
-However if you are planning to run `cwf` on a server (e.g. VPS) we recommend using our [docker image](#docker-image).
+However, if you are planning to run `cwf` on a server (e.g. VPS) we recommend using our [docker image](#docker-image).
 
 ### MacOS & Linux
 ```bash
@@ -32,52 +32,52 @@ user_id = '<id_from_server>'
 ```
 
 `user_id` will be automatically generated when registering user the first time. \
-Have a look at the [registration command](#register-user-on-server).
+Take a look at the [registration command](#register-user-on-server).
 
 ### Client Usage
-#### Send content to server and save it in a single file.
+#### Send Content to Server and save It in a Single File.
 ```
 echo "Hello Clipboard!" | cwf testfile
 ```
 `Saved to: testfile`
 
-#### Get content of a saved file from server.
+#### Get Content of a Saved File from Server.
 ```
 cwf testfile
 ```
 `Hello Clipboard!`
 
-#### Send content to server and save file in a subdirectory.
+#### Send Content to Server and save File in a Subdirectory.
 ```
 echo "Hello Clipboard from subdirectory!" | cwf testdir/testfile
 ```
 `Saved to: testdir/testfile`
 
-#### Get content of a saved file in a subdirectory from server.
+#### Get Content of a Saved File in a Subdirectory from Server.
 ```
 cwf testdir/testerfile
 ```
 `Hello Clipboard from subdirectory!`
 
-#### Delete single file
+#### Delete Single File
 ```
 cwf -d testerfile
 ```
 `Deleted file: testerfile`
 
-#### Delete single file in subdirectory
+#### Delete Single File in Subdirectory
 ```
 cwf -d testdir/testfile
 ```
 `Deleted file: testfile`
 
-#### Delete all files in subdirectory
+#### Delete All Files in Subdirectory
 ```
 cwf -d testdir/
 ```
 `Deleted directory: testdir`
 
-#### List files and directories in configured base directory.
+#### List Files and Directories in Configured Base Directory.
 ```
 cwf -l
 ```
@@ -87,7 +87,7 @@ Dir    testdir      2006-01-02 15:04:05
 File   testfile.cwf 2006-01-02 15:04:05
 ```
 
-#### List files and directories in a subdirectory.
+#### List Files and Directories in a Subdirectory.
 ```
 cwf -l testdir
 ```
@@ -96,8 +96,8 @@ Type    Name         Modified
 File   testfile.cwf 2006-01-02 15:04:05
 ```
 
-#### Register user on server
-For a more secure environment, we decided to implement user accounts server side. Therefore you'll need to register
+#### Register User on Server
+For a securer environment, we decided to implement user accounts server side. Therefore, you'll need to register
 your user when using `cwf` the first time. Be sure there is a `user_name` set in your config file and it's the same on the server.
 
 ```
@@ -137,7 +137,7 @@ registered = false
     ```bash
     docker pull noobcollective/cwf-server
     ```
-- Start `cwf` with docker in HTTP Mode:
+- Start `cwf` with Docker in HTTP Mode:
     ```bash
     docker run \
         --name cwf-server \
@@ -145,7 +145,7 @@ registered = false
         -v <volume_name>:<container_filesDir> \
         -d noobcollective/cwf-server -serve
     ```
-- Start `cwf` with docker in HTTPS Mode:
+- Start `cwf` with Docker in HTTPS Mode:
     ```bash
     docker run \
         --name cwf-server \
@@ -157,11 +157,11 @@ registered = false
     ```
 - `<container_port>`: Configurable via `-port` argument in cwf -> defaults to 8787.
 - `<container_config_path>`: Configurable via `-config` argument in cwf.
-- `<volume_name>`: Name of the docker volume for persisting data.
+- `<volume_name>`: Name of the Docker volume for persisting data.
 - `<container_filesDir>`: Configurable via `files_dir` in config file -> defaults to `/tmp/cwf/`.
 
 When `ssl` is set to `true` in your config, you need to mount the directory where the SSL certificates are located on your host machine \
-and set the paths of your ssl directory, certificate and key in your config.
+and set the paths of your SSL directory, certificate and key in your config.
 - `<host_ssl_certs_dir>`: Directory where the SSL certificates are located on your host machine.
 - `<container_ssl_certs_dir>`: Configurable in your config.
 
@@ -169,7 +169,7 @@ and set the paths of your ssl directory, certificate and key in your config.
 - [ ] get size of files
 - [ ] diffs over snapshots
 - [ ] chown directories to specific users
-- [ ] only stdout a range (e.g cwf test1 -r 25,30)
+- [ ] only stdout a range (eg cwf test1 -r 25,30)
 
 
 ## Dependencies
@@ -177,14 +177,14 @@ and set the paths of your ssl directory, certificate and key in your config.
 - Added yaml to parse our config file gopkg.in/yaml.v3
 
 
-## TODOs:
+## To-Dos:
 - [x] prefix paths with cwf home (preferable in a config file) - defaults to `/tmp/cwf/`
 - [ ] more secure content (because base64 - wtf)
 - [x] safe error handling (e.g. handle error responses in client)
 - [x] fix path for config file in resulting binary (for now it uses `pwd`, which is not a good idea, because `cwf` should lay in `<somewhere>/bin`)
 
 
-## Feature list - Server
+## Feature List - Server
 - [x] copy into cwf
 - [x] stdout of cwf
 - [x] clean file
@@ -196,7 +196,7 @@ and set the paths of your ssl directory, certificate and key in your config.
   - Implemented with yaml (I thought yaml is toml and toml is yaml) so currently its working with a yaml file but i actually want a toml file
 
 
-## Feature list - Client
+## Feature List - Client
 - [x] copy into cwf
 - [x] stdout of cwf
 - [x] clean file
