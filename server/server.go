@@ -1,4 +1,5 @@
 package server
+
 // Package to start the CWF server and handle all actions.
 
 import (
@@ -13,7 +14,6 @@ import (
 	"cwf/entities"
 	"cwf/utilities"
 
-	"github.com/google/uuid"
 	"github.com/pelletier/go-toml/v2"
 	"go.uber.org/zap"
 )
@@ -21,8 +21,6 @@ import (
 const file_suffix string = ".cwf"
 
 var Version string
-var filesDir string
-var configPath string
 var config entities.ServerConfig_t
 
 // Global Variabel to hold users in memory
@@ -35,52 +33,18 @@ type cwfChecker_t struct {
 // Init server
 func initServer() bool {
 	// Load configuration file.
-	configPath = utilities.GetFlagValue[string]("config")
-	file, err := utilities.LoadConfig(configPath)
+	configPath := utilities.GetFlagValue[string]("config")
+	if len(configPath) == 0 {
+		zap.L().Error("Please profived a config path. Example: ./cwf -serve -config PATH/TO/CONFIG")
+		return false
+	}
+
+	err := config.InitConfig(configPath, users)
 	if err != nil {
 		return false
 	}
 
-	zap.L().Info("Reading allowed users from config")
-	err = toml.Unmarshal(file, &config)
-	if err != nil {
-		zap.L().Error("Error deconding toml err: " + err.Error())
-		return false
-	}
-
-	if emptyValues, ok := validateConfig(); !ok {
-		fmt.Fprintf(os.Stderr, "Missing values in config: %s!\n", strings.Join(emptyValues, ", "))
-		return false
-	}
-
-	filesDir = config.General.FilesDir
-	if _, err := os.Stat(filesDir); os.IsNotExist(err) {
-		if err := os.MkdirAll(filesDir, 0777); err != nil {
-			zap.L().Error(err.Error())
-			return false
-		}
-	}
-
-	zap.L().Info("Generating UUID's for Users")
-	for i := range config.Accounts {
-		user := &config.Accounts[i]
-		id := uuid.New()
-		if config.Accounts[i].Registered {
-			users[user.Name] = *user
-			continue
-		}
-
-		config.Accounts[i].ID = id.String()
-		users[user.Name] = *user
-	}
-
-	tomlContent, err := toml.Marshal(config)
-	if err != nil {
-		zap.L().Error("Failed to parse config into string.")
-		return false
-	}
-
-	err = utilities.WriteConfig(configPath, tomlContent)
+	// Will use filewatcher after we write back to it
 	return err == nil
 }
 
@@ -89,6 +53,9 @@ func StartServer() {
 	if !initServer() {
 		return
 	}
+
+	// Initialize filewatcher
+	go config.ConfigWatcher(users)
 
 	zap.L().Info("Welcome to CopyWithFriends on your Server!")
 
@@ -109,12 +76,11 @@ func StartServer() {
 	var port string = config.General.Port
 	zap.L().Info("Serving on Port: " + port)
 	if !*config.General.SSL {
-		log.Fatal(http.ListenAndServe(":" + port, cwfChecker_t{mux}))
+		log.Fatal(http.ListenAndServe(":"+port, cwfChecker_t{mux}))
 	} else {
-		log.Fatal(http.ListenAndServeTLS(":" + port,
+		log.Fatal(http.ListenAndServeTLS(":"+port,
 			certPath, keyPath, cwfChecker_t{mux}))
 	}
-
 }
 
 // handleStdout is called on `GET` to return the saved content of a file.
@@ -128,18 +94,18 @@ func handleGetContent(writer http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	content, err := os.ReadFile(filesDir + pathname + file_suffix)
+	content, err := os.ReadFile(pathname + file_suffix)
 	if err != nil {
 		// Check if it is maybe a directory
-		info, err := os.Stat(filesDir + pathname)
+		info, err := os.Stat(pathname)
 		if err != nil {
-			zap.L().Warn("Failed to show stats of file for path: " + filesDir + pathname)
+			zap.L().Warn("Failed to show stats of file for path: " + pathname)
 			writeRes(writer, http.StatusBadRequest, "No file name or path provided!")
 			return
 		}
 
 		if info.IsDir() {
-			zap.L().Warn("User tried typed Directory name. Either path is wrong or name Path: " + filesDir + pathname)
+			zap.L().Warn("User tried typed Directory name. Either path is wrong or name Path: " + pathname)
 			writeRes(writer, http.StatusOK, "Requested File is a Directory, check your path/name")
 			return
 		}
@@ -179,8 +145,8 @@ func handlePostContent(writer http.ResponseWriter, req *http.Request) {
 			return
 		}
 
-		if _, err := os.Stat(filesDir + dirs[0]); os.IsNotExist(err) {
-			if err := os.Mkdir(filesDir + dirs[0], os.ModePerm); err != nil {
+		if _, err := os.Stat(dirs[0]); os.IsNotExist(err) {
+			if err := os.Mkdir(dirs[0], os.ModePerm); err != nil {
 				zap.L().Error("Error while creating new directory: " + err.Error())
 				http.Error(writer, err.Error(), http.StatusBadRequest)
 				return
@@ -188,13 +154,13 @@ func handlePostContent(writer http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	if err := os.WriteFile(filesDir + pathname + file_suffix, []byte(body.Content), 0644); err != nil {
+	if err := os.WriteFile(pathname+file_suffix, []byte(body.Content), 0644); err != nil {
 		zap.L().Error("Error while creating/writing file! Error: " + err.Error())
 		http.Error(writer, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	writeRes(writer, http.StatusOK, "Saved to: " + pathname)
+	writeRes(writer, http.StatusOK, "Saved to: "+pathname)
 }
 
 // handleDelete is called on `DELETE` to clean the directory or file.
@@ -210,11 +176,12 @@ func handleDeleteContent(writer http.ResponseWriter, req *http.Request) {
 
 	var err error
 	var msg string
+
 	if strings.HasSuffix(target, "/") {
-		err = os.RemoveAll(filesDir + target)
+		err = os.RemoveAll(target)
 		msg = "Deleted directory: " + strings.TrimSuffix(target, "/")
 	} else {
-		err = os.Remove(filesDir + target + file_suffix)
+		err = os.Remove(target + file_suffix)
 		msg = "Deleted file: " + target
 	}
 
@@ -233,7 +200,7 @@ func handleListContent(writer http.ResponseWriter, req *http.Request) {
 	zap.L().Info("Got GET on /list/")
 
 	targetDir := req.PathValue("pathname")
-	targetDir = filesDir + targetDir
+	targetDir = targetDir
 
 	content, err := os.ReadDir(targetDir)
 	if err != nil {
@@ -304,7 +271,7 @@ func handleAccountRegister(writer http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	file, err := utilities.LoadConfig(configPath)
+	file, err := config.LoadConfig(config.ConfigPath)
 	if err != nil {
 		return
 	}
@@ -331,7 +298,7 @@ func handleAccountRegister(writer http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	err = utilities.WriteConfig(configPath, tomlContent)
+	err = config.WriteConfig(config.ConfigPath, tomlContent)
 	if err != nil {
 		return
 	}
@@ -395,36 +362,4 @@ func (checker cwfChecker_t) ServeHTTP(writer http.ResponseWriter, req *http.Requ
 	}
 
 	checker.handler.ServeHTTP(writer, req)
-}
-
-// Checks if there are mising values in config file.
-// Returns empty fields and bool to check if config is valid.
-func validateConfig() ([]string, bool) {
-	var emptyValues []string
-
-	if config.General.Port == "" {
-		emptyValues = append(emptyValues, "Port")
-	}
-
-	if config.General.FilesDir == "" {
-		emptyValues = append(emptyValues, "FilesDir")
-	}
-
-	if config.General.SSL == nil {
-		emptyValues = append(emptyValues, "SSL")
-	} else if *config.General.SSL {
-		if config.General.CertsDir == "" {
-			emptyValues = append(emptyValues, "CertsDir")
-		}
-
-		if config.General.CertFile == "" {
-			emptyValues = append(emptyValues, "CertFile")
-		}
-
-		if config.General.KeyFile == "" {
-			emptyValues = append(emptyValues, "Keyfile")
-		}
-	}
-
-	return emptyValues, len(emptyValues) == 0
 }

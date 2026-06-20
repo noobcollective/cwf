@@ -4,7 +4,11 @@ go 1.22.2
 
 require github.com/pelletier/go-toml/v2 v2.2.2
 
-require github.com/google/uuid v1.6.0 // indirect
+require (
+	github.com/fsnotify/fsnotify v1.7.0 // indirect
+	github.com/google/uuid v1.6.0 // indirect
+	golang.org/x/sys v0.4.0 // indirect
+)
 
 require (
 	go.uber.org/multierr v1.11.0 // indirect

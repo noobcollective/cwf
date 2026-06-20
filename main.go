@@ -12,8 +12,8 @@ import (
 
 // General variables & flags.
 var (
-	version string = "dev"
-	showVersion = flag.Bool("version", false, "Prints the program version")
+	version     string = "dev"
+	showVersion        = flag.Bool("version", false, "Prints the program version")
 )
 
 // Server flags
